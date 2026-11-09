@@ -3442,45 +3442,15 @@ body.md .ci.new i {
   pointer-events: none;
   z-index: 1;
 }
-.ava[data-f="neon"]::before, .ava[data-f="fire"]::before, .ava[data-f="ice"]::before, .ava[data-f="gold"]::before, .ava[data-f="rainbow"]::before {
+.ava[data-f="rainbow"]::before {
   inset: -9%;
   border-radius: 50%;
   -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2.5px));
   mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2.5px));
 }
-.ava[data-f="neon"]::before {
-  background: conic-gradient(#00f0ff, #2b6cff, #00ffa3, #00f0ff);
-  filter: drop-shadow(0 0 3px #00e5ff) drop-shadow(0 0 6px #00a2ff);
-  animation: fSpin 3s linear infinite;
-}
-.ava[data-f="fire"]::before {
-  inset: -12%;
-  background: conic-gradient(#ff3d00, #ffb300, #ff6d00, #ffd54f, #ff3d00);
-  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 3px));
-  mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 3px));
-  filter: drop-shadow(0 0 4px #ff6d00) drop-shadow(0 -2px 6px #ff3d00);
-  animation: fSpin 2.2s linear infinite, fFlick .35s steps(2) infinite;
-}
-.ava[data-f="ice"]::before {
-  background: conic-gradient(#e0f7ff, #7dd3fc, #ffffff, #38bdf8, #e0f7ff);
-  filter: drop-shadow(0 0 4px #7dd3fc);
-  animation: fSpin 6s linear infinite reverse;
-}
-.ava[data-f="gold"]::before {
-  background: conic-gradient(from 0deg, #8a6100, #ffd76a, #b8860b, #fff3b0, #8a6100);
-  filter: drop-shadow(0 0 3px rgba(255, 200, 60, .6));
-  animation: fSpin 5s linear infinite;
-}
 .ava[data-f="rainbow"]::before {
   background: conic-gradient(#ff004c, #ff9a00, #ffe600, #00e070, #00b3ff, #8a5cff, #ff004c);
   animation: fSpin 2.5s linear infinite;
-}
-.ava[data-f="orbit"]::before {
-  inset: -14%;
-  border-radius: 50%;
-  border: 1px dashed rgba(255, 255, 255, .35);
-  background: radial-gradient(circle at 50% 3%, #fff 0 5%, transparent 6%), radial-gradient(circle at 50% 97%, #ffd76a 0 4%, transparent 5%), radial-gradient(circle at 3% 50%, #7dd3fc 0 3.5%, transparent 4.5%);
-  animation: fSpin 4s linear infinite;
 }
 .ava[data-f="pixel"]::before {
   inset: -10%;
@@ -3488,16 +3458,6 @@ body.md .ci.new i {
   border: 3px dotted #fff;
   filter: drop-shadow(0 0 2px #fff);
   animation: fSpin 8s steps(16) infinite;
-}
-.ava[data-f="ears"]::before {
-  left: -4%;
-  right: -4%;
-  top: -30%;
-  height: 42%;
-  background: linear-gradient(#f2f2f2, #d9d9d9);
-  clip-path: polygon(4% 100%, 16% 0, 38% 78%, 62% 78%, 84% 0, 96% 100%, 70% 100%, 30% 100%);
-  animation: fEar 3s ease-in-out infinite;
-  transform-origin: 50% 100%;
 }
 .ava[data-f="phones"]::before {
   inset: -16% -14% 30%;
@@ -3602,4 +3562,26 @@ body.md .ci.new i {
   .ava[data-f]::before {
     animation: none !important;
   }
+}
+.ava[data-f="neon"]::before, .ava[data-f="fire"]::before, .ava[data-f="ice"]::before, .ava[data-f="gold"]::before, .ava[data-f="space"]::before, .ava[data-f="coco"]::before, .ava[data-f="komaru"]::before, .ava[data-f="komugi"]::before, .ava[data-f="kotokrolik"]::before {
+  left: -10%;
+  right: -10%;
+  top: -38%;
+  bottom: -10%;
+  background: center / 100% 100% no-repeat;
+}
+.ava[data-f="neon"]::before { background-image: url(frames/neon.svg); }
+.ava[data-f="fire"]::before { background-image: url(frames/fire.svg); }
+.ava[data-f="ice"]::before { background-image: url(frames/ice.svg); }
+.ava[data-f="gold"]::before { background-image: url(frames/gold.svg); }
+.ava[data-f="space"]::before { background-image: url(frames/space.svg); }
+.ava[data-f="coco"]::before { background-image: url(frames/coco.svg); }
+.ava[data-f="komaru"]::before { background-image: url(frames/komaru.svg); }
+.ava[data-f="komugi"]::before { background-image: url(frames/komugi.svg); }
+.ava[data-f="kotokrolik"]::before { background-image: url(frames/kotokrolik.svg); }
+.frames .fr {
+  padding-top: 22px;
+}
+.ci .ava[data-f]:not([data-f=""]), .pMem .ava[data-f]:not([data-f=""]) {
+  margin-top: 6px;
 }

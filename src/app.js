@@ -121,7 +121,7 @@ const avatar = (el, name, uid, online) => {
   el.dataset.p = online ? u.presence || "on" : "";
   el.dataset.f = FRAMES[u.frame] ? u.frame : "";
 };
-const FRAMES = { neon: "Неон", fire: "Огонь", ice: "Лёд", gold: "Золото", rainbow: "Радуга", orbit: "Орбита", pixel: "Пиксели", ears: "Ушки", phones: "Наушники", crown: "Корона" };
+const FRAMES = { coco: "Кока", komaru: "Комару", komugi: "Комуги", kotokrolik: "Котокролик", neon: "Неон", fire: "Огонь", ice: "Лёд", gold: "Золото", space: "Космос", rainbow: "Радуга", pixel: "Пиксели", phones: "Наушники", crown: "Корона" };
 const BADGES = { check: "Подтверждён", gold: "Золотая галочка", dev: "Разработчик", mod: "Модератор", founder: "Основатель" };
 const BADGE_SVG = {
   check: '<svg viewBox="0 0 24 24"><path fill="#3b82f6" d="M12 1l2.6 2.2 3.4-.4 1.1 3.2 3 1.7-.9 3.3.9 3.3-3 1.7-1.1 3.2-3.4-.4L12 23l-2.6-2.2-3.4.4-1.1-3.2-3-1.7.9-3.3-.9-3.3 3-1.7L6 2.8l3.4.4z"/><path fill="#fff" d="M10.4 15.6 7 12.2l1.4-1.4 2 2 5.2-5.2L17 9z"/></svg>',
