@@ -202,7 +202,7 @@ const setLS = (k, v) => {
   }
 };
 const ACC = ["#FF4F1F", "#2FB7A4", "#3D7BFF", "#E8B321", "#E8436F", "#7FBF3F"];
-const look = { acc: LS("acc", ACC[0]), theme: LS("theme", "glass"), size: LS("size", 16), bub: LS("bub", 22), stars: LS("stars", true) };
+const look = { acc: LS("acc", ACC[0]), theme: LS("theme", "glass"), size: LS("size", 16), bub: LS("bub", 22), stars: LS("stars", true), anim: LS("anim", "spring"), dots: LS("dots", "wave"), type: LS("type", "glow") };
 function applyLook() {
   const r = document.documentElement.style;
   r.setProperty("--sig", look.acc);
@@ -213,6 +213,7 @@ function applyLook() {
   document.body.classList.toggle("glass", look.theme === "glass" || look.theme === "mono");
   document.body.classList.toggle("mono", look.theme === "mono");
   document.body.classList.toggle("calm", !look.stars);
+  document.body.className = document.body.className.replace(/\b(ma|td|tt)-\w+/g, "").trim() + ` ma-${look.anim} td-${look.dots} tt-${look.type}`;
 }
 applyLook();
 const sec = { pin: LS("pin", ""), lockHide: LS("lockHide", false), hideText: LS("hideText", false), where: LS("where", true) };
@@ -340,6 +341,12 @@ function openSettings() {
     look.bub = +v;
     setLS("bub", +v);
     applyLook();
+  });
+  for (const k of ["anim", "dots", "type"]) seg("o" + k[0].toUpperCase() + k.slice(1), look[k], (v) => {
+    look[k] = v;
+    setLS(k, v);
+    applyLook();
+    if (k === "dots") { $("tyB").hidden = false; $("tyWho").textContent = ""; clearTimeout(applyLook.t); applyLook.t = setTimeout(renderHead, 2500); }
   });
   $("oStars").checked = look.stars;
   $("sPin").checked = !!sec.pin;
@@ -513,6 +520,7 @@ const chatTitle = (c) => grp(c) ? c.name : nameOf(c.members.find((m) => m !== me
 const unread = (c) => c.last && c.last.uid !== me.uid && (!c.reads || !c.reads[me.uid] || c.reads[me.uid].toMillis() < (c.last.ts ? c.last.ts.toMillis() : 0));
 function renderChats() {
   if (!me) return;
+  if (!renderChats.done) { renderChats.done = 1; $("chats").classList.add("intro"); setTimeout(() => $("chats").classList.remove("intro"), 900); }
   renderSky();
   const q = $("q").value.trim().toLowerCase().replace(/^@/, "");
   const list = [...chats.values()].sort((a, b) => (b.last && b.last.ts ? b.last.ts.toMillis() : 0) - (a.last && a.last.ts ? a.last.ts.toMillis() : 0))
@@ -607,6 +615,8 @@ function openChat(id) {
   if (stopMsgs) stopMsgs();
   cur = c;
   msgs = [];
+  shown = null;
+  $("tyB").hidden = true;
   msgLimit = 60;
   setReply(null);
   editing = null;
@@ -659,12 +669,19 @@ function renderHead() {
   } else avatar(ava, chatTitle(cur), other && other.uid, other && isOnline(other.seen));
   const typing = Object.entries(cur.typing || {}).filter(([u, t]) => u !== me.uid && t && Date.now() - t.toMillis() < 6e3).map(([u]) => nameOf(u));
   $("cSub").classList.toggle("typing", typing.length > 0);
+  const ty = $("tyB"), was = !ty.hidden;
+  ty.hidden = !typing.length;
+  $("tyWho").textContent = grp(cur) ? typing.join(", ") : "";
+  if (typing.length && !was) { const b = $("msgs"); if (b.scrollHeight - b.scrollTop - b.clientHeight < 120) b.scrollTop = b.scrollHeight; }
   $("cSub").textContent = typing.length ? grp(cur) ? typing.join(", ") + " печата" + (typing.length > 1 ? "ют…" : "ет…") : "печатает…" : grp(cur) ? cur.members.length + " участник" + (cur.members.length % 10 === 1 && cur.members.length % 100 !== 11 ? "" : cur.members.length % 10 >= 2 && cur.members.length % 10 <= 4 && (cur.members.length % 100 < 10 || cur.members.length % 100 >= 20) ? "а" : "ов") + ", в сети " + cur.members.filter((u) => u === me.uid || users.get(u) && isOnline(users.get(u).seen)).length : other ? (isOnline(other.seen) ? "в сети" : "был(а) " + fmtDay(other.seen)) + (other.status ? " · " + other.status : "") : "";
 }
 setInterval(renderHead, 3e3);
 const REACTS = ["❤️", "😂", "👍", "🔥", "😮", "😢"];
+let shown = null;
 function renderMsgs(jump) {
   const box = $("msgs");
+  const first = !shown;
+  if (first) shown = new Set();
   const atBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 80;
   box.textContent = "";
   let day = "", prev = null;
@@ -682,6 +699,12 @@ function renderMsgs(jump) {
     const mine = m.uid === me.uid, cont = prev && prev.uid === m.uid && m.ts && prev.ts && m.ts.toMillis() - prev.ts.toMillis() < 5 * 6e4;
     const el = document.createElement("div");
     el.className = "m" + (mine ? " mine" : "") + (cont ? " cont" : "");
+    if (!shown.has(m.id)) {
+      shown.add(m.id);
+      const back = msgs.length - 1 - msgs.indexOf(m);
+      if (!first) el.classList.add("in");
+      else if (back < 14) { el.classList.add("in", "intro"); el.style.setProperty("--d", (13 - back) * 28 + "ms"); }
+    }
     el.dataset.id = m.id;
     let html = "";
     if (!mine && grp(cur) && !cont) html += `<b class="who" style="--h:${hueOf(m.uid)}"></b>`;
@@ -800,9 +823,23 @@ const sendBtn = () => {
   $("mic").hidden = has;
 };
 let typingAt = 0;
-txt.addEventListener("input", () => {
+txt.addEventListener("input", (e) => {
   grow();
   sendBtn();
+  if (e.inputType && e.inputType.startsWith("insert")) {
+    const c = $("composer");
+    c.classList.remove("key");
+    void c.offsetWidth;
+    c.classList.add("key");
+    if (look.type === "ink") {
+      const d = document.createElement("b");
+      d.className = "ink";
+      d.style.left = Math.min(92, 8 + txt.value.length % 60 * 1.4) + "%";
+      d.style.setProperty("--h", Math.random() * 360 | 0);
+      c.appendChild(d);
+      setTimeout(() => d.remove(), 700);
+    }
+  }
   if (cur && Date.now() - typingAt > 3e3) {
     typingAt = Date.now();
     updateDoc(doc(db, "chats", cur.id), { ["typing." + me.uid]: serverTimestamp() }).catch(() => {
