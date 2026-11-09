@@ -119,7 +119,30 @@ const avatar = (el, name, uid, online) => {
   el.classList.toggle("pic", !!u.photo);
   el.classList.toggle("on", !!online);
   el.dataset.p = online ? u.presence || "on" : "";
+  el.dataset.f = FRAMES[u.frame] ? u.frame : "";
 };
+const FRAMES = { neon: "Неон", fire: "Огонь", ice: "Лёд", gold: "Золото", rainbow: "Радуга", orbit: "Орбита", pixel: "Пиксели", ears: "Ушки", phones: "Наушники", crown: "Корона" };
+const BADGES = { check: "Подтверждён", gold: "Золотая галочка", dev: "Разработчик", mod: "Модератор", founder: "Основатель" };
+const BADGE_SVG = {
+  check: '<svg viewBox="0 0 24 24"><path fill="#3b82f6" d="M12 1l2.6 2.2 3.4-.4 1.1 3.2 3 1.7-.9 3.3.9 3.3-3 1.7-1.1 3.2-3.4-.4L12 23l-2.6-2.2-3.4.4-1.1-3.2-3-1.7.9-3.3-.9-3.3 3-1.7L6 2.8l3.4.4z"/><path fill="#fff" d="M10.4 15.6 7 12.2l1.4-1.4 2 2 5.2-5.2L17 9z"/></svg>',
+  gold: '<svg viewBox="0 0 24 24"><path fill="#f5b301" d="M12 1l2.6 2.2 3.4-.4 1.1 3.2 3 1.7-.9 3.3.9 3.3-3 1.7-1.1 3.2-3.4-.4L12 23l-2.6-2.2-3.4.4-1.1-3.2-3-1.7.9-3.3-.9-3.3 3-1.7L6 2.8l3.4.4z"/><path fill="#3a2a00" d="M10.4 15.6 7 12.2l1.4-1.4 2 2 5.2-5.2L17 9z"/></svg>',
+  dev: '<svg viewBox="0 0 24 24"><rect width="24" height="24" rx="7" fill="#23a55a"/><path fill="#fff" d="m9.4 16.6-4.6-4.6 4.6-4.6 1.4 1.4L7.6 12l3.2 3.2zm5.2 0-1.4-1.4 3.2-3.2-3.2-3.2 1.4-1.4 4.6 4.6z"/></svg>',
+  mod: '<svg viewBox="0 0 24 24"><path fill="#f23f43" d="M12 1 3 5v6c0 5.5 3.8 10.7 9 12 5.2-1.3 9-6.5 9-12V5z"/><path fill="#fff" d="M10.6 15.6 7.5 12.5l1.4-1.4 1.7 1.7 4.5-4.5 1.4 1.4z"/></svg>',
+  founder: '<svg viewBox="0 0 24 24"><rect width="24" height="24" rx="7" fill="#f5b301"/><path fill="#3a2a00" d="M5 17h14l1-9-4.5 3.5L12 6l-3.5 5.5L4 8z"/></svg>'
+};
+function badgeEl(u) {
+  if (!u || !BADGES[u.badge]) return null;
+  const s = document.createElement("span");
+  s.className = "vb";
+  s.title = BADGES[u.badge];
+  s.innerHTML = BADGE_SVG[u.badge];
+  return s;
+}
+function nameInto(el, u, text) {
+  el.textContent = text != null ? text : (u && u.name) || "…";
+  const b = badgeEl(u);
+  if (b) el.append(b);
+}
 let signUp = false;
 function authMode(up) {
   signUp = up;
@@ -220,6 +243,7 @@ async function startApp(u) {
     syncRoom();
   }));
   listenCalls();
+  unsub.push(onSnapshot(collection(db, "admins"), (qs) => { admins = new Set(qs.docs.map((d) => d.id)); $("sAdm").hidden = !admins.has(me.uid); if (!$("adm").hidden) renderAdmin(); }, () => {}));
   beat();
   setInterval(beat, 6e4);
   lock();
@@ -368,9 +392,23 @@ function swatches(id, list, val, on) {
     box.appendChild(b);
   });
 }
-let pBan = null, pPres = "on";
+let pBan = null, pPres = "on", pFrame = "";
+function renderFrames() {
+  const box = $("pFrame");
+  box.textContent = "";
+  for (const [k, t] of [["", "Без рамки"], ...Object.entries(FRAMES)]) {
+    const b = el("button", "fr" + (k === pFrame ? " on" : "")), a = el("div", "ava");
+    a.textContent = initials($("pName").value || me.name);
+    a.style.setProperty("--h", me.hue != null ? me.hue : hueOf(me.uid));
+    if (pPhoto) { a.style.backgroundImage = `url("${pPhoto}")`; a.textContent = ""; }
+    a.dataset.f = k;
+    b.append(a, el("span", "", t));
+    b.onclick = () => { pFrame = k; renderFrames(); profAva(); };
+    box.append(b);
+  }
+}
 function profAva() {
-  profCard($("pPrev"), { ...me, name: $("pName").value || me.name, username: $("pUser").value.trim().toLowerCase().replace(/^@/, ""), photo: pPhoto, banner: pBan, c1: $("pC1").value, c2: $("pC2").value, presence: pPres, status: $("pStatus").value, about: $("pAbout").value }, true);
+  profCard($("pPrev"), { ...me, name: $("pName").value || me.name, username: $("pUser").value.trim().toLowerCase().replace(/^@/, ""), photo: pPhoto, banner: pBan, frame: pFrame, c1: $("pC1").value, c2: $("pC2").value, presence: pPres, status: $("pStatus").value, about: $("pAbout").value }, true);
 }
 function profCard(box, u, preview) {
   box.textContent = "";
@@ -386,9 +424,12 @@ function profCard(box, u, preview) {
   const on = preview ? u.presence !== "inv" : onl(u);
   a.classList.toggle("on", on);
   a.dataset.p = on ? u.presence || "on" : "";
+  a.dataset.f = FRAMES[u.frame] ? u.frame : "";
   wrap.append(a);
-  const body = el("div", "pcBody");
-  body.append(el("h2", "", u.name || "…"));
+  const body = el("div", "pcBody"), h = el("h2");
+  nameInto(h, u);
+  body.append(h);
+  if (u.title) body.append(el("span", "pcTitle", u.title));
   if (u.username) body.append(el("small", "pcUser", "@" + u.username));
   const pres = { on: "В сети", idle: "Не на месте", dnd: "Не беспокоить", inv: "Невидимка" };
   const line = el("div", "pcStat", (on ? pres[u.presence || "on"] : u.seen ? "был(а) " + fmtDay(u.seen) : "не в сети") + (u.status ? " · " + u.status : ""));
@@ -414,6 +455,8 @@ function openSettings() {
   $("pC1").value = me.c1 || "#2b2d31";
   $("pC2").value = me.c2 || "#111214";
   seg("pPres", pPres, (v) => { pPres = v; profAva(); });
+  pFrame = me.frame || "";
+  renderFrames();
   profAva();
   swatches("oAcc", ACC, look.acc, (c) => {
     look.acc = c;
@@ -500,7 +543,7 @@ $("pSave").onclick = async () => {
     toast("Ник не может быть пустым");
     return;
   }
-  const data = { name, status: $("pStatus").value.trim().slice(0, 70), about: $("pAbout").value.trim().slice(0, 190), photo: pPhoto || deleteField(), banner: pBan || deleteField(), c1: $("pC1").value, c2: $("pC2").value, presence: pPres };
+  const data = { name, status: $("pStatus").value.trim().slice(0, 70), about: $("pAbout").value.trim().slice(0, 190), photo: pPhoto || deleteField(), banner: pBan || deleteField(), c1: $("pC1").value, c2: $("pC2").value, presence: pPres, frame: pFrame };
   if (pHue != null) data.hue = pHue;
   const un = $("pUser").value.trim().toLowerCase().replace(/^@/, "");
   if (un && !/^[a-z0-9_]{4,24}$/.test(un)) { toast("Юзернейм: от 4 до 24 латинских букв, цифр и _"); return; }
@@ -647,7 +690,7 @@ function renderChats() {
         el.className = "ci";
         el.innerHTML = '<div class="ava"></div><div class="ciT"><b></b><small></small></div>';
         avatar(el.querySelector(".ava"), u.name, u.uid, onl(u));
-        el.querySelector("b").textContent = u.name;
+        nameInto(el.querySelector("b"), u);
         el.querySelector("small").textContent = u.username ? "@" + u.username : onl(u) ? "в сети" : "был(а) " + fmtDay(u.seen);
         el.onclick = () => { $("q").value = ""; openDm(u.uid); };
         box.appendChild(el);
@@ -681,7 +724,7 @@ function renderChats() {
     el.addEventListener("touchstart", () => { hold = setTimeout(() => { hold = -1; chatMenu(c, el); }, 450); }, { passive: true });
     el.addEventListener("touchend", (e) => { if (hold === -1) e.preventDefault(); clearTimeout(hold); });
     el.addEventListener("touchmove", () => clearTimeout(hold), { passive: true });
-    el.querySelector("b").textContent = chatTitle(c);
+    nameInto(el.querySelector("b"), other, chatTitle(c));
     const l = c.last;
     el.querySelector("small").textContent = l ? (l.uid === me.uid ? "Ты: " : grp(c) ? nameOf(l.uid) + ": " : "") + l.text : grp(c) ? "Группа создана" : "Пока пусто";
     el.onclick = () => openChat(c.id);
@@ -790,7 +833,7 @@ let keepScroll = 0;
 function renderHead() {
   if (!cur) return;
   const other = grp(cur) ? null : users.get(cur.members.find((m) => m !== me.uid));
-  $("cName").textContent = chatTitle(cur);
+  nameInto($("cName"), grp(cur) ? null : users.get(cur.members.find((m) => m !== me.uid)), chatTitle(cur));
   $("callBtn").hidden = $("vidBtn").hidden = grp(cur);
   const ava = $("cAva");
   ava.className = "ava" + (grp(cur) ? " grp" : "");
@@ -846,7 +889,7 @@ function renderMsgs(jump) {
     if (m.text) html += '<div class="t"></div>';
     html += '<span class="meta"></span>';
     el.innerHTML = '<div class="bub">' + html + "</div>";
-    if (!mine && grp(cur) && !cont) el.querySelector(".who").textContent = nameOf(m.uid);
+    if (!mine && grp(cur) && !cont) { const w = el.querySelector(".who"), wu = users.get(m.uid); nameInto(w, wu, nameOf(m.uid)); if (wu && wu.title) w.append(Object.assign(document.createElement("em"), { className: "ttl", textContent: wu.title })); }
     if (m.reply) {
       el.querySelector(".q b").textContent = nameOf(m.reply.uid);
       el.querySelector(".q span").textContent = m.reply.text;
@@ -1331,7 +1374,9 @@ function openProfile(target) {
       const u = users.get(uid) || { uid, name: "…" }, r = el("div", "pMem"), a = el("div", "ava");
       avatar(a, u.name, uid, onl(u));
       const t = el("div", "pMemT");
-      t.append(el("b", "", u.name + (uid === me.uid ? " (ты)" : "")), el("small", "", onl(u) ? "в сети" : "был(а) " + fmtDay(u.seen)));
+      const nb = el("b");
+      nameInto(nb, u, u.name + (uid === me.uid ? " (ты)" : ""));
+      t.append(nb, el("small", "", (u.title ? u.title + " · " : "") + (onl(u) ? "в сети" : "был(а) " + fmtDay(u.seen))));
       r.append(a, t);
       if (uid === c.owner) r.append(el("em", "", "владелец"));
       else if (owner) { const x = el("button", "icon pKick", "×"); x.title = "Удалить из группы"; x.onclick = (e) => { e.stopPropagation(); updateDoc(doc(db, "chats", c.id), { members: c.members.filter((m) => m !== uid) }).then(() => toast(u.name + " удалён(а)"), () => toast("Не получилось")); }; r.append(x); }
@@ -1867,3 +1912,62 @@ function listenCalls() {
   unsub.push(onSnapshot(query(collection(db, "calls"), where("to", "==", me.uid), where("state", "==", "ring")), (qs) => qs.docChanges().forEach((ch) => { if (ch.type === "added") incoming(ch.doc); }), () => {}));
 }
 window.addEventListener("beforeunload", () => { if (room) leaveRoom(); });
+
+let admins = new Set(), admSel = null;
+$("sId").onclick = () => navigator.clipboard.writeText(me.uid).then(() => toast("ID скопирован: " + me.uid));
+$("sAdm").onclick = () => { $("setDlg").hidden = true; admSel = null; renderAdmin(); $("adm").hidden = false; };
+$("admX").onclick = () => { if (admSel) { admSel = null; renderAdmin(); } else $("adm").hidden = true; };
+$("adm").onclick = (e) => { if (e.target === $("adm")) $("adm").hidden = true; };
+function renderAdmin() {
+  const box = $("admBody");
+  box.textContent = "";
+  if (!admins.has(me.uid)) { $("adm").hidden = true; return; }
+  if (!admSel) {
+    $("admTitle").textContent = "Админка";
+    box.append(el("p", "admHint", "Выбери человека, чтобы выдать галочку, титул или права админа. Рамки каждый ставит себе сам в профиле."));
+    for (const u of [...users.values()].sort((a, b) => a.name.localeCompare(b.name))) {
+      const r = el("button", "pMem"), a = el("div", "ava"), t = el("div", "pMemT"), nb = el("b");
+      avatar(a, u.name, u.uid, onl(u));
+      nameInto(nb, u);
+      t.append(nb, el("small", "", [admins.has(u.uid) ? "админ" : "", u.title || "", u.username ? "@" + u.username : ""].filter(Boolean).join(" · ") || "без титула"));
+      r.append(a, t);
+      r.onclick = () => { admSel = u.uid; renderAdmin(); };
+      box.append(r);
+    }
+    return;
+  }
+  const u = users.get(admSel) || { uid: admSel, name: "…" };
+  $("admTitle").textContent = u.name;
+  const card = el("div", "pc");
+  profCard(card, u);
+  box.append(card);
+  box.append(el("p", "lbl", "Галочка"));
+  let badge = BADGES[u.badge] ? u.badge : "";
+  const bs = el("div", "badgePick");
+  const drawB = () => {
+    bs.textContent = "";
+    for (const [k, t] of [["", "Нет"], ...Object.entries(BADGES)]) {
+      const b = el("button", "bp" + (k === badge ? " on" : ""));
+      if (k) b.innerHTML = BADGE_SVG[k];
+      b.append(el("span", "", t));
+      b.onclick = () => { badge = k; drawB(); };
+      bs.append(b);
+    }
+  };
+  drawB();
+  box.append(bs, el("p", "lbl", "Титул"));
+  const ti = el("input", "gname");
+  ti.maxLength = 24;
+  ti.placeholder = "Например: Основатель, Легенда, Стример";
+  ti.value = u.title || "";
+  box.append(ti);
+  const sv = el("button", "main", "Сохранить");
+  sv.onclick = () => updateDoc(doc(db, "users", u.uid), { badge: badge || deleteField(), title: ti.value.trim().slice(0, 24) || deleteField() }).then(() => toast("Выдано: " + u.name), (e) => toast("Не сохранилось: " + (e.code || e.message)));
+  box.append(sv);
+  if (u.uid !== me.uid) {
+    const ad = el("button", "verRow", "");
+    ad.append(el("span", "", admins.has(u.uid) ? "Забрать права админа" : "Сделать админом"), el("small", "", admins.has(u.uid) ? "больше не сможет выдавать галочки" : "сможет выдавать галочки и титулы"));
+    ad.onclick = () => (admins.has(u.uid) ? deleteDoc(doc(db, "admins", u.uid)) : setDoc(doc(db, "admins", u.uid), { by: me.uid, at: serverTimestamp() })).then(() => toast("Готово"), (e) => toast("Не вышло: " + (e.code || e.message)));
+    box.append(ad);
+  }
+}

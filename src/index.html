@@ -66,6 +66,7 @@
   </section>
   <div class="empty" id="emptyChat"><b>Vela</b><p>Выбери чат или звезду слева</p></div>
 </main>
+<div class="sheet" id="adm" hidden><div class="sheetCard setCard"><div class="setHead"><b id="admTitle">Админка</b><button class="icon" id="admX" aria-label="Закрыть">×</button></div><div id="admBody"></div></div></div>
 <div class="sheet" id="prof" hidden><div class="sheetCard profCard"><button class="icon pX" id="prX" aria-label="Закрыть">×</button><div id="prBody"></div><input type="file" id="grpPic" accept="image/*" hidden></div></div>
 <div class="room" id="room" hidden>
   <header class="rTop"><button class="icon" id="rMin" aria-label="Свернуть"><svg viewBox="0 0 24 24"><path d="M7.4 8.6 12 13.2l4.6-4.6L18 10l-6 6-6-6z"/></svg></button><div><b id="rTitle"></b><small id="rSub"></small></div></header>
@@ -103,6 +104,8 @@
       <input id="pName" maxlength="24" placeholder="Ник">
       <label class="uname"><span>@</span><input id="pUser" maxlength="24" placeholder="имя_пользователя" autocomplete="off" spellcheck="false"></label>
     </div>
+    <p class="lbl">Рамка аватарки</p>
+    <div class="frames" id="pFrame"></div>
     <p class="lbl">Статус</p>
     <div class="seg2 wrap" id="pPres"><button data-v="on">В сети</button><button data-v="idle">Не на месте</button><button data-v="dnd">Не беспокоить</button><button data-v="inv">Невидимка</button></div>
     <div class="profF">
@@ -140,6 +143,8 @@
     <p class="note">Видно только тебе, на этом устройстве. Никуда не сохраняется и другим не показывается. Страну подсказывает сервис ipapi.is по адресу подключения.</p>
 
     <p class="secT">Приложение</p>
+    <button class="verRow" id="sAdm" hidden><span>Админка</span><small>галочки, титулы, админы</small></button>
+    <button class="verRow" id="sId"><span>Мой ID</span><small>нажми, чтобы скопировать</small></button>
     <button class="verRow" id="sVer"><span>Vela <b id="verN"></b></span><small id="verS">Проверить обновления</small></button>
     <button class="danger" id="sOut">Выйти из аккаунта</button>
   </div>
