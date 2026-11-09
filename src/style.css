@@ -2425,3 +2425,219 @@ body.tt-none .tmir {
 .call.inc:not(.live) #cMute, .call.inc:not(.live) #cCam {
   display: none;
 }
+.ciV {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  margin-top: 4px;
+  color: #2fbf71;
+  font-size: .75em;
+}
+.ciV svg {
+  width: 14px;
+  height: 14px;
+  fill: currentColor;
+  margin-right: 2px;
+}
+.ciV .ava {
+  width: 18px;
+  height: 18px;
+  font-size: 8px;
+  border-radius: 50%;
+  background-size: cover;
+}
+.ciV .ava::after {
+  display: none;
+}
+.ciV.me svg {
+  animation: dPulse 1.6s ease-in-out infinite;
+}
+.vbar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin: 0 10px 10px;
+  padding: 8px 8px 8px 14px;
+  border-radius: 18px;
+  background: color-mix(in srgb, #2fbf71 18%, var(--paper2));
+  animation: updIn .35s cubic-bezier(.2, 1.3, .4, 1) both;
+}
+.vbar[hidden] {
+  display: none;
+}
+.vbInfo {
+  flex: 1;
+  display: grid;
+  min-width: 0;
+  text-align: left;
+  color: var(--ink);
+}
+.vbInfo b {
+  color: #2fbf71;
+  font-size: .85em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.vbInfo small {
+  color: var(--ink2);
+  font-size: .75em;
+}
+.vbar .icon svg {
+  width: 20px;
+  height: 20px;
+  fill: currentColor;
+}
+.vbar .icon.off {
+  color: #e5484d;
+  opacity: 1;
+}
+.vbar .icon.bad {
+  color: #e5484d;
+}
+.room {
+  position: fixed;
+  inset: 0;
+  z-index: 38;
+  display: flex;
+  flex-direction: column;
+  color: #fff;
+  background: radial-gradient(circle at 20% 0%, color-mix(in srgb, #2fbf71 30%, #000), #07080c 65%);
+  animation: callIn .35s cubic-bezier(.2, 1, .3, 1) both;
+}
+.room[hidden] {
+  display: none;
+}
+.rTop {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+  padding-top: max(14px, env(safe-area-inset-top));
+}
+.rTop .icon {
+  color: #fff;
+}
+.rTop .icon svg {
+  width: 26px;
+  height: 26px;
+  fill: currentColor;
+}
+.rTop div {
+  display: grid;
+}
+.rTop b {
+  font-size: 1.15em;
+}
+.rTop small {
+  opacity: .7;
+}
+.rGrid {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(240px, 44vw), 1fr));
+  gap: 10px;
+  padding: 6px 14px 120px;
+  overflow: auto;
+  align-content: center;
+}
+.rGrid[data-n="1"] {
+  grid-template-columns: minmax(0, 520px);
+  justify-content: center;
+}
+.tile {
+  position: relative;
+  display: grid;
+  place-items: center;
+  aspect-ratio: 4 / 3;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, .07);
+  overflow: hidden;
+  transition: box-shadow .15s, transform .2s;
+  animation: msPop .4s cubic-bezier(.2, 1.3, .4, 1) both;
+}
+.tile.talk {
+  box-shadow: 0 0 0 3px #2fbf71, 0 0 30px rgba(47, 191, 113, .45);
+}
+.tile.talk .ava {
+  transform: scale(1.06);
+}
+.tile .ava {
+  transition: transform .15s;
+  animation: none;
+}
+.tile video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.tile video.mirror {
+  transform: scaleX(-1);
+}
+.tile.screen {
+  grid-column: 1 / -1;
+  aspect-ratio: 16 / 9;
+  background: #000;
+  cursor: zoom-in;
+}
+.tile.screen video {
+  object-fit: contain;
+}
+.tile.focus {
+  position: fixed;
+  inset: 0;
+  z-index: 3;
+  border-radius: 0;
+  cursor: zoom-out;
+}
+.tName {
+  position: absolute;
+  left: 10px;
+  bottom: 10px;
+  padding: 4px 10px;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, .5);
+  font-size: .8em;
+  backdrop-filter: blur(6px);
+}
+.tMute {
+  position: absolute;
+  right: 10px;
+  top: 10px;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #e5484d;
+}
+.tMute svg {
+  width: 16px;
+  height: 16px;
+  fill: #fff;
+}
+.tMute::after {
+  content: "";
+  position: absolute;
+  width: 2px;
+  height: 20px;
+  background: #fff;
+  transform: rotate(45deg);
+}
+.rAudio {
+  display: none;
+}
+.rBtns {
+  left: 50%;
+  transform: translateX(-50%);
+}
+.callBtns button.on {
+  background: #fff;
+  color: #111;
+}
+.rBtns #rMic.off {
+  background: #e5484d;
+  color: #fff;
+}

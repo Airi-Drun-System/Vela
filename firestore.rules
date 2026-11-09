@@ -59,6 +59,12 @@ service cloud.firestore {
 
       function chat() { return get(/databases/$(db)/documents/chats/$(cid)).data; }
 
+      match /sig/{sid} {
+        allow create: if member() && inChat(chat()) && request.resource.data.from == request.auth.uid
+          && request.resource.data.d is string && request.resource.data.d.size() <= 60000;
+        allow read, delete: if member() && (resource.data.to == request.auth.uid || resource.data.from == request.auth.uid);
+      }
+
       match /files/{fid} {
         allow read: if member() && inChat(chat());
         allow create: if member() && inChat(chat()) && request.resource.data.uid == request.auth.uid

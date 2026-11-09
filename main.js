@@ -1,5 +1,5 @@
 "use strict";
-const { app, BrowserWindow, Tray, Menu, shell, nativeImage, ipcMain } = require("electron");
+const { app, BrowserWindow, Tray, Menu, shell, nativeImage, ipcMain, desktopCapturer } = require("electron");
 const path = require("path");
 if (!app.requestSingleInstanceLock()) app.quit();
 if (process.platform === "win32") app.setAppUserModelId("com.vegasdev.vela");
@@ -22,7 +22,10 @@ function createWindow() {
     return { action: "deny" };
   });
   win.webContents.on("will-navigate", (e) => e.preventDefault());
-  win.webContents.session.setPermissionRequestHandler((_wc, p, cb) => cb(["media", "notifications", "clipboard-sanitized-write"].includes(p)));
+  win.webContents.session.setPermissionRequestHandler((_wc, p, cb) => cb(["media", "notifications", "clipboard-sanitized-write", "display-capture"].includes(p)));
+  win.webContents.session.setDisplayMediaRequestHandler((_req, cb) => {
+    desktopCapturer.getSources({ types: ["screen"] }).then((s) => cb(s.length ? { video: s[0], audio: process.platform === "win32" ? "loopback" : undefined } : {}), () => cb({}));
+  }, { useSystemPicker: true });
   win.on("close", (e) => {
     if (!quitting) {
       e.preventDefault();

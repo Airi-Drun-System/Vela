@@ -200,6 +200,7 @@ async function startApp(u) {
     renderMe();
     renderChats();
     renderHead();
+    syncRoom();
   }));
   unsub.push(onSnapshot(query(collection(db, "chats"), where("members", "array-contains", me.uid)), (qs) => {
     qs.docChanges().forEach((ch) => {
@@ -213,6 +214,7 @@ async function startApp(u) {
       cur = chats.get(cur.id);
       renderHead();
     }
+    syncRoom();
   }));
   listenCalls();
   beat();
@@ -617,6 +619,15 @@ function renderChats() {
     if (grp(c)) grpAva(ava, c);
     else avatar(ava, chatTitle(c), other && other.uid, other && isOnline(other.seen));
     el.querySelector(".ciM").innerHTML = (mutes.includes(c.id) ? ICON.mute : "") + (pins.includes(c.id) ? ICON.pin : "");
+    const vs = voiceOf(c);
+    if (vs.length) {
+      const v = document.createElement("div");
+      v.className = "ciV" + (room && room.cid === c.id ? " me" : "");
+      v.innerHTML = ICON.head;
+      for (const x of vs.slice(0, 5)) { const a = document.createElement("div"); a.className = "ava"; avatar(a, nameOf(x.uid), x.uid, false); v.append(a); }
+      v.append(vs.length > 5 ? "+" + (vs.length - 5) : "");
+      el.querySelector(".ciT").append(v);
+    }
     el.oncontextmenu = (e) => { e.preventDefault(); chatMenu(c, el); };
     let hold = 0;
     el.addEventListener("touchstart", () => { hold = setTimeout(() => { hold = -1; chatMenu(c, el); }, 450); }, { passive: true });
@@ -1173,6 +1184,7 @@ const ICON = {
   file: '<svg viewBox="0 0 24 24"><path d="M6 2h8l6 6v14H6zm7 1.5V9h5.5zM8 13h8v2H8zm0 4h8v2H8z"/></svg>',
   phone: '<svg viewBox="0 0 24 24"><path d="M6.6 10.8a15.1 15.1 0 0 0 6.6 6.6l2.2-2.2a1 1 0 0 1 1-.25 11.4 11.4 0 0 0 3.6.57 1 1 0 0 1 1 1V20a1 1 0 0 1-1 1A17 17 0 0 1 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1c0 1.25.2 2.45.57 3.57a1 1 0 0 1-.25 1z"/></svg>',
   video: '<svg viewBox="0 0 24 24"><path d="M3 6h12a1 1 0 0 1 1 1v3.5l5-3.5v10l-5-3.5V17a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1z"/></svg>',
+  head: '<svg viewBox="0 0 24 24"><path d="M12 3a9 9 0 0 0-9 9v7a2 2 0 0 0 2 2h3v-8H5v-1a7 7 0 0 1 14 0v1h-3v8h3a2 2 0 0 0 2-2v-7a9 9 0 0 0-9-9z"/></svg>',
   chat: '<svg viewBox="0 0 24 24"><path d="M4 4h16v12H7l-3 3z"/></svg>',
   bell: '<svg viewBox="0 0 24 24"><path d="M12 22a2 2 0 0 0 2-2h-4a2 2 0 0 0 2 2zm6-6V11a6 6 0 0 0-5-5.9V4h-2v1.1A6 6 0 0 0 6 11v5l-2 2v1h16v-1z"/></svg>',
   add: '<svg viewBox="0 0 24 24"><path d="M15 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4zm-9-2V7H4v3H1v2h3v3h2v-3h3v-2zm9 4c-2.7 0-8 1.3-8 4v2h16v-2c0-2.7-5.3-4-8-4z"/></svg>',
@@ -1372,8 +1384,6 @@ $("composer").addEventListener("dragover", (e) => e.preventDefault());
 $("chat").addEventListener("drop", (e) => { e.preventDefault(); [...e.dataTransfer.files].reduce((p, f) => p.then(() => sendFile(f)), Promise.resolve()); });
 $("chat").addEventListener("dragover", (e) => e.preventDefault());
 
-const ICE = { iceServers: [{ urls: ["stun:stun.l.google.com:19302", "stun:stun1.l.google.com:19302", "stun:stun.cloudflare.com:3478"] }] };
-let call = null;
 const ring = { ctx: null, t: 0 };
 function ringStart(out) {
   ringStop();
@@ -1405,147 +1415,334 @@ function ringStop() {
   ring.ctx = null;
   if (navigator.vibrate) navigator.vibrate(0);
 }
-function callUI() {
-  const box = $("call");
-  if (!call) { box.hidden = true; return; }
-  const u = users.get(call.peer) || { name: "…" };
-  box.hidden = false;
-  box.className = "call" + (call.video ? " vid" : "") + (call.remoteVid ? " rv" : "") + (call.state === "live" ? " live" : "") + (call.out ? "" : " inc");
-  avatar($("callAva"), u.name, call.peer, false);
-  $("callName").textContent = u.name;
-  $("callSt").textContent = call.state === "live" ? (call.t0 ? Math.floor((Date.now() - call.t0) / 6e4) + ":" + String(Math.floor((Date.now() - call.t0) / 1e3) % 60).padStart(2, "0") : "Соединяю…") : call.out ? (call.video ? "Видеозвонок…" : "Звоню…") : call.video ? "Входящий видеозвонок" : "Входящий звонок";
-  $("cOk").hidden = call.out || call.state === "live";
-  $("cMute").classList.toggle("off", !!call.muted);
-  $("cCam").classList.toggle("off", !!call.camOff);
-  $("cCam").hidden = !call.video;
-}
-async function media(video) {
+const ICE = { iceServers: [{ urls: ["stun:stun.l.google.com:19302", "stun:stun1.l.google.com:19302", "stun:stun.cloudflare.com:3478"] }] };
+const canScreen = !Capacitor.isNativePlatform() && !!(navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia);
+let room = null, call = null;
+const voiceOf = (c) => Object.entries((c && c.voice) || {}).filter(([u, v]) => v && users.get(u) && (u === me.uid || isOnline(users.get(u).seen))).map(([u, v]) => ({ uid: u, ...v }));
+const setVoice = (cid, v) => updateDoc(doc(db, "chats", cid), { ["voice." + me.uid]: v }).catch(() => {});
+const myVoice = () => ({ t: serverTimestamp(), mic: room.mic, cam: !!room.local.getVideoTracks().length, scr: room.screen ? room.screen.id : "" });
+async function joinRoom(cid, video) {
+  if (room && room.cid === cid) { room.min = false; return renderRoom(); }
+  if (room) leaveRoom();
+  let local;
   try {
-    return await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true }, video: video ? { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } } : false });
+    local = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }, video: video ? { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } } : false });
   } catch {
     toast(video ? "Нет доступа к камере или микрофону" : "Нет доступа к микрофону");
-    return null;
+    return false;
+  }
+  room = { cid, local, screen: null, mic: true, min: false, peers: new Map(), since: Date.now(), media: new Map(), unsub: [] };
+  room.unsub.push(onSnapshot(query(collection(db, "chats", cid, "sig"), where("to", "==", me.uid)), (qs) => qs.docChanges().forEach((ch) => { if (ch.type === "added") onSig(ch.doc); }), () => {}));
+  await setVoice(cid, myVoice());
+  if (chats.get(cid)) chats.get(cid).voice = { ...(chats.get(cid).voice || {}), [me.uid]: myVoice() };
+  syncRoom();
+  return true;
+}
+function leaveRoom() {
+  if (!room) return;
+  const r = room;
+  room = null;
+  r.unsub.forEach((f) => f());
+  r.peers.forEach((p) => p.pc.close());
+  r.local.getTracks().forEach((t) => t.stop());
+  if (r.screen) r.screen.getTracks().forEach((t) => t.stop());
+  updateDoc(doc(db, "chats", r.cid), { ["voice." + me.uid]: deleteField() }).catch(() => {});
+  if (call && call.cid === r.cid) endCall();
+  renderRoom();
+  renderChats();
+}
+function syncRoom() {
+  if (!room) return;
+  const c = chats.get(room.cid);
+  const here = new Set(voiceOf(c).map((v) => v.uid));
+  here.forEach((u) => { if (u !== me.uid && !room.peers.has(u)) makePeer(u); });
+  room.peers.forEach((p, u) => { if (!here.has(u)) { p.pc.close(); room.peers.delete(u); } });
+  if (call && call.cid === room.cid) {
+    if (here.has(call.peer) && !call.t0) { call.t0 = Date.now(); call.state = "live"; room.min = false; ringStop(); callUI(); }
+    else if (call.t0 && !here.has(call.peer)) return leaveRoom();
+  }
+  renderRoom();
+}
+function makePeer(u) {
+  const pc = new RTCPeerConnection(ICE), p = { pc, polite: me.uid > u, making: false, ignore: false, streams: new Map() };
+  room.peers.set(u, p);
+  room.local.getTracks().forEach((t) => pc.addTrack(t, room.local));
+  if (room.screen) room.screen.getTracks().forEach((t) => pc.addTrack(t, room.screen));
+  const cid = room.cid;
+  const sig = (d) => addDoc(collection(db, "chats", cid, "sig"), { from: me.uid, to: u, d: JSON.stringify(d), ts: serverTimestamp() }).catch(() => {});
+  p.sig = sig;
+  pc.onnegotiationneeded = async () => {
+    try {
+      p.making = true;
+      await pc.setLocalDescription();
+      sig({ desc: pc.localDescription });
+    } catch {} finally { p.making = false; }
+  };
+  pc.onicecandidate = (e) => { if (e.candidate) sig({ cand: e.candidate }); };
+  pc.ontrack = (e) => {
+    const s = e.streams[0] || new MediaStream([e.track]);
+    p.streams.set(s.id, s);
+    s.onremovetrack = () => { if (!s.getTracks().length) p.streams.delete(s.id); renderRoom(); };
+    e.track.onended = () => renderRoom();
+    renderRoom();
+  };
+  pc.onconnectionstatechange = () => {
+    if (pc.connectionState === "failed") pc.restartIce();
+    renderRoom();
+  };
+  return p;
+}
+async function onSig(s) {
+  const d = s.data();
+  deleteDoc(s.ref).catch(() => {});
+  if (!room || !d.ts || d.ts.toMillis() < room.since - 15e3) return;
+  let msg;
+  try { msg = JSON.parse(d.d); } catch { return; }
+  const p = room.peers.get(d.from) || makePeer(d.from);
+  const pc = p.pc;
+  try {
+    if (msg.desc) {
+      const collide = msg.desc.type === "offer" && (p.making || pc.signalingState !== "stable");
+      p.ignore = !p.polite && collide;
+      if (p.ignore) return;
+      await pc.setRemoteDescription(msg.desc);
+      if (msg.desc.type === "offer") {
+        await pc.setLocalDescription();
+        p.sig({ desc: pc.localDescription });
+      }
+    } else if (msg.cand) {
+      try { await pc.addIceCandidate(msg.cand); } catch (e) { if (!p.ignore) throw e; }
+    }
+  } catch {}
+}
+function eachPc(f) { if (room) room.peers.forEach((p) => f(p.pc)); }
+function dropTrack(t) { eachPc((pc) => pc.getSenders().forEach((s) => { if (s.track === t) pc.removeTrack(s); })); t.stop(); }
+function toggleMic() {
+  if (!room) return;
+  room.mic = !room.mic;
+  room.local.getAudioTracks().forEach((t) => (t.enabled = room.mic));
+  setVoice(room.cid, myVoice());
+  renderRoom();
+}
+async function toggleCam() {
+  if (!room) return;
+  const v = room.local.getVideoTracks()[0];
+  if (v) {
+    room.local.removeTrack(v);
+    dropTrack(v);
+  } else {
+    try {
+      const s = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } } });
+      const t = s.getVideoTracks()[0];
+      room.local.addTrack(t);
+      eachPc((pc) => pc.addTrack(t, room.local));
+    } catch {
+      return toast("Нет доступа к камере");
+    }
+  }
+  setVoice(room.cid, myVoice());
+  renderRoom();
+}
+async function toggleScreen() {
+  if (!room) return;
+  if (room.screen) {
+    const s = room.screen;
+    room.screen = null;
+    s.getTracks().forEach(dropTrack);
+  } else {
+    try {
+      const s = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: { ideal: 30 }, width: { ideal: 1920 } }, audio: true });
+      room.screen = s;
+      s.getTracks().forEach((t) => { eachPc((pc) => pc.addTrack(t, s)); t.onended = () => { if (room && room.screen === s) toggleScreen(); }; });
+    } catch {
+      return;
+    }
+  }
+  setVoice(room.cid, myVoice());
+  renderRoom();
+}
+const ac = { ctx: null, an: new Map() };
+function level(key, stream) {
+  if (!stream.getAudioTracks().length) return 0;
+  try {
+    ac.ctx = ac.ctx || new AudioContext();
+    let a = ac.an.get(key);
+    if (!a || a.stream !== stream) {
+      const n = ac.ctx.createAnalyser();
+      n.fftSize = 512;
+      ac.ctx.createMediaStreamSource(stream).connect(n);
+      a = { n, stream, buf: new Uint8Array(n.fftSize) };
+      ac.an.set(key, a);
+    }
+    a.n.getByteTimeDomainData(a.buf);
+    let sum = 0;
+    for (const v of a.buf) sum += (v - 128) * (v - 128);
+    return Math.sqrt(sum / a.buf.length);
+  } catch {
+    return 0;
   }
 }
-function peer(side) {
-  const pc = new RTCPeerConnection(ICE);
-  call.local.getTracks().forEach((t) => pc.addTrack(t, call.local));
-  pc.ontrack = (e) => {
-    $("cRemote").srcObject = e.streams[0];
-    call.remoteVid = e.streams[0].getVideoTracks().length > 0;
-    callUI();
-  };
-  pc.onicecandidate = (e) => { if (e.candidate) addDoc(collection(call.ref, side), e.candidate.toJSON()).catch(() => {}); };
-  pc.onconnectionstatechange = () => {
-    if (pc.connectionState === "connected" && !call.t0) { call.t0 = Date.now(); callUI(); }
-    if (pc.connectionState === "failed") { toast("Связь не установилась — сеть не пускает звонок"); hangup(); }
-  };
-  $("cLocal").srcObject = call.video ? call.local : null;
-  return pc;
+setInterval(() => {
+  if (!room || room.min) return;
+  document.querySelectorAll("#rGrid .tile[data-uid]").forEach((t) => {
+    const u = t.dataset.uid, p = room.peers.get(u);
+    const st = u === me.uid ? (room.mic ? room.local : null) : p && [...p.streams.values()].find((s) => s.getAudioTracks().length && !(room.scrOf || {})[s.id]);
+    t.classList.toggle("talk", !!st && level(u, st) > 6);
+  });
+}, 120);
+function mediaEl(key, stream, kind) {
+  let e = room.media.get(key);
+  if (!e || e.srcObject !== stream) {
+    e = document.createElement(kind);
+    e.autoplay = true;
+    e.playsInline = true;
+    if (kind === "video") e.muted = true;
+    e.srcObject = stream;
+    room.media.set(key, e);
+  }
+  return e;
 }
-function watchCall(otherSide) {
-  call.unsub.push(onSnapshot(collection(call.ref, otherSide), (qs) => qs.docChanges().forEach((ch) => { if (ch.type === "added") call.pc.addIceCandidate(new RTCIceCandidate(ch.doc.data())).catch(() => {}); })));
-  call.unsub.push(onSnapshot(call.ref, async (s) => {
-    const d = s.data();
-    if (!d || !call) return;
-    if (call.out && d.answer && !call.pc.currentRemoteDescription) await call.pc.setRemoteDescription(d.answer).catch(() => {});
-    if (d.state === "live" && call.state !== "live") { call.state = "live"; ringStop(); callUI(); }
-    if (["end", "decline", "cancel", "miss", "busy"].includes(d.state)) {
-      if (d.state === "decline") toast("Звонок отклонён");
-      if (d.state === "busy") toast("Занято");
-      finish(d.state);
-    }
+function renderRoom() {
+  const box = $("room"), bar = $("vbar");
+  if (!room) { box.hidden = true; bar.hidden = true; $("rAudio").textContent = ""; return; }
+  const c = chats.get(room.cid) || { id: room.cid, members: [], name: "" }, vs = voiceOf(c);
+  box.hidden = room.min;
+  bar.hidden = !room.min;
+  $("vbName").textContent = chatTitle(c);
+  $("vbCount").textContent = vs.length + " в комнате";
+  $("vbMic").classList.toggle("off", !room.mic);
+  $("rTitle").textContent = chatTitle(c);
+  $("rSub").textContent = vs.length === 1 ? "Ты тут один — позови остальных" : vs.length + " в голосовом";
+  $("rMic").classList.toggle("off", !room.mic);
+  $("rCam").classList.toggle("on", !!room.local.getVideoTracks().length);
+  $("rScr").classList.toggle("on", !!room.screen);
+  $("rScr").hidden = !canScreen;
+  room.scrOf = {};
+  vs.forEach((v) => { if (v.scr) room.scrOf[v.scr] = v.uid; });
+  const keep = new Set(), audio = $("rAudio"), grid = $("rGrid");
+  grid.textContent = "";
+  const screens = [];
+  if (room.screen) screens.push({ uid: me.uid, key: "scr-me", s: room.screen });
+  room.peers.forEach((p, u) => p.streams.forEach((s) => {
+    if (s.getAudioTracks().length) { const a = mediaEl("a-" + s.id, s, "audio"); keep.add("a-" + s.id); if (a.parentNode !== audio) audio.append(a); }
+    if (room.scrOf[s.id] === u && s.getVideoTracks().length) screens.push({ uid: u, key: "v-" + s.id, s });
   }));
+  for (const sc of screens) {
+    const t = el("div", "tile screen"), v = mediaEl(sc.key, sc.s, "video");
+    keep.add(sc.key);
+    t.append(v, el("span", "tName", (sc.uid === me.uid ? "Твой экран" : "Экран: " + nameOf(sc.uid))));
+    t.onclick = () => t.classList.toggle("focus");
+    grid.append(t);
+    v.play().catch(() => {});
+  }
+  for (const v of vs) {
+    const t = el("div", "tile"), a = el("div", "ava big");
+    t.dataset.uid = v.uid;
+    avatar(a, nameOf(v.uid), v.uid, false);
+    let cam = null;
+    if (v.uid === me.uid) cam = room.local.getVideoTracks().length ? room.local : null;
+    else { const p = room.peers.get(v.uid); if (p) cam = [...p.streams.values()].find((s) => s.getVideoTracks().some((x) => x.readyState === "live") && room.scrOf[s.id] !== v.uid) || null; }
+    t.append(a);
+    if (cam) { const key = v.uid === me.uid ? "cam-me" : "v-" + cam.id, e = mediaEl(key, cam, "video"); keep.add(key); t.append(e); t.classList.add("cam"); if (v.uid === me.uid) e.classList.add("mirror"); e.play().catch(() => {}); }
+    const p = room.peers.get(v.uid), st = p ? p.pc.connectionState : "";
+    t.append(el("span", "tName", nameOf(v.uid) + (v.uid === me.uid ? " (ты)" : "") + (st && st !== "connected" ? " · " + (st === "failed" ? "нет связи" : "подключаю…") : "")));
+    if (v.mic === false) { const m = el("i", "tMute"); m.innerHTML = ICON.mic; t.append(m); }
+    grid.append(t);
+  }
+  grid.dataset.n = grid.children.length;
+  room.media.forEach((e, k) => { if (!keep.has(k) && k !== "cam-me" && k !== "scr-me") { e.remove(); room.media.delete(k); } });
+}
+$("rMic").onclick = $("vbMic").onclick = toggleMic;
+$("rCam").onclick = toggleCam;
+$("rScr").onclick = toggleScreen;
+$("rLeave").onclick = $("vbLeave").onclick = leaveRoom;
+$("rMin").onclick = () => { if (room) { room.min = true; renderRoom(); } };
+$("vbOpen").onclick = () => { if (room) { room.min = false; renderRoom(); } };
+$("roomBtn").onclick = () => cur && joinRoom(cur.id, false);
+async function ensureDm(uid) {
+  const cid = dmId(me.uid, uid);
+  if (!chats.has(cid)) {
+    await setDoc(doc(db, "chats", cid), { public: false, members: [me.uid, uid].sort(), created: serverTimestamp() }, { merge: true });
+    chats.set(cid, { id: cid, public: false, members: [me.uid, uid].sort() });
+  }
+  return cid;
+}
+function callUI() {
+  const box = $("call");
+  if (!call || call.state === "live") { box.hidden = true; return; }
+  const u = users.get(call.peer) || { name: "…" };
+  box.hidden = false;
+  box.className = "call" + (call.out ? "" : " inc");
+  avatar($("callAva"), u.name, call.peer, false);
+  $("callName").textContent = u.name;
+  $("callSt").textContent = call.out ? (call.video ? "Видеозвонок…" : "Звоню…") : call.video ? "Входящий видеозвонок" : "Входящий звонок";
+  $("cOk").hidden = call.out;
 }
 async function startCall(uid, video) {
   if (call) return toast("Ты уже в звонке");
   if (!uid || uid === me.uid) return;
-  const local = await media(video);
-  if (!local) return;
-  call = { peer: uid, video, out: true, state: "ring", local, unsub: [], ref: doc(collection(db, "calls")) };
-  call.pc = peer("a");
-  callUI();
-  ringStart(true);
   try {
-    const offer = await call.pc.createOffer();
-    await setDoc(call.ref, { from: me.uid, to: uid, video, state: "ring", offer: { type: offer.type, sdp: offer.sdp }, ts: serverTimestamp() });
-    await call.pc.setLocalDescription(offer);
-    watchCall("b");
-    call.timer = setTimeout(() => { if (call && call.state === "ring") { updateDoc(call.ref, { state: "miss" }).catch(() => {}); finish("miss"); } }, 45e3);
+    const cid = await ensureDm(uid), ref = doc(collection(db, "calls"));
+    call = { ref, cid, peer: uid, video, out: true, state: "ring", unsub: [] };
+    callUI();
+    ringStart(true);
+    await setDoc(ref, { from: me.uid, to: uid, video, state: "ring", ts: serverTimestamp() });
+    if (!await joinRoom(cid, video)) return endCall("cancel");
+    room.min = true;
+    renderRoom();
+    call.unsub.push(onSnapshot(ref, (s) => {
+      const d = s.data();
+      if (!d || !call) return;
+      if (d.state === "decline") { toast("Звонок отклонён"); leaveRoom(); }
+      if (d.state === "busy") { toast("Занято"); leaveRoom(); }
+    }));
+    call.timer = setTimeout(() => { if (call && !call.t0) { updateDoc(ref, { state: "miss" }).catch(() => {}); leaveRoom(); } }, 45e3);
   } catch (e) {
     toast("Не получилось позвонить: " + (e.code || e.message));
-    finish("cancel");
+    endCall("cancel");
   }
 }
 function incoming(s) {
   const d = s.data();
-  if (call) { updateDoc(s.ref, { state: "busy" }).catch(() => {}); return; }
+  if (call || room) { updateDoc(s.ref, { state: "busy" }).catch(() => {}); return; }
   if (!d.ts || Date.now() - d.ts.toMillis() > 45e3) return;
-  call = { id: s.id, ref: s.ref, peer: d.from, video: !!d.video, out: false, state: "ring", offer: d.offer, unsub: [] };
-  call.unsub.push(onSnapshot(s.ref, (x) => { const v = x.data(); if (call && call.state === "ring" && v && v.state !== "ring") finish(v.state); }));
+  call = { ref: s.ref, cid: dmId(me.uid, d.from), peer: d.from, video: !!d.video, out: false, state: "ring", unsub: [] };
+  call.unsub.push(onSnapshot(s.ref, (x) => { const v = x.data(); if (call && call.state === "ring" && v && v.state !== "ring") endCall(); }));
   callUI();
   ringStart(false);
   if (document.hidden) notify({ uid: d.from, text: d.video ? "Входящий видеозвонок" : "Входящий звонок" });
 }
 async function accept() {
-  if (!call || call.out || call.local) return;
+  if (!call || call.out) return;
   ringStop();
   call.unsub.splice(0).forEach((f) => f());
-  const local = await media(call.video);
-  if (!local) return decline();
-  call.local = local;
-  call.pc = peer("b");
-  try {
-    await call.pc.setRemoteDescription(call.offer);
-    const ans = await call.pc.createAnswer();
-    await call.pc.setLocalDescription(ans);
-    await updateDoc(call.ref, { answer: { type: ans.type, sdp: ans.sdp }, state: "live" });
-    call.state = "live";
-    watchCall("a");
-    callUI();
-  } catch (e) {
-    toast("Не получилось ответить: " + (e.code || e.message));
-    hangup();
-  }
+  call.state = "live";
+  callUI();
+  updateDoc(call.ref, { state: "live" }).catch(() => {});
+  if (!await joinRoom(call.cid, call.video)) endCall();
 }
 function decline() {
   if (!call) return;
   updateDoc(call.ref, { state: "decline" }).catch(() => {});
-  finish("decline");
+  endCall();
 }
-function hangup() {
-  if (!call) return;
-  if (!call.out && call.state === "ring") return decline();
-  updateDoc(call.ref, { state: call.state === "live" ? "end" : "cancel" }).catch(() => {});
-  finish(call.state === "live" ? "end" : "cancel");
-}
-function finish(why) {
+function endCall() {
   if (!call) return;
   const c = call;
   call = null;
   clearTimeout(c.timer);
   ringStop();
   c.unsub.forEach((f) => f());
-  if (c.pc) c.pc.close();
-  if (c.local) c.local.getTracks().forEach((t) => t.stop());
-  $("cRemote").srcObject = null;
-  $("cLocal").srcObject = null;
+  updateDoc(c.ref, { state: c.t0 ? "end" : "cancel" }).catch(() => {});
   callUI();
-  if (c.out) {
-    const cid = dmId(me.uid, c.peer), dur = c.t0 ? Math.round((Date.now() - c.t0) / 1e3) : 0;
-    const go = () => post(cid, { call: { video: c.video, dur, miss: !c.t0 } }).catch(() => {});
-    if (chats.has(cid)) go();
-    else setDoc(doc(db, "chats", cid), { public: false, members: [me.uid, c.peer].sort(), created: serverTimestamp() }, { merge: true }).then(go, () => {});
-  }
+  if (c.out) post(c.cid, { call: { video: c.video, dur: c.t0 ? Math.round((Date.now() - c.t0) / 1e3) : 0, miss: !c.t0 } }).catch(() => {});
+  if (room && room.cid === c.cid) leaveRoom();
 }
-setInterval(() => { if (call && call.state === "live") callUI(); }, 1e3);
 $("cOk").onclick = accept;
-$("cEnd").onclick = hangup;
-$("cMute").onclick = () => { if (!call || !call.local) return; call.muted = !call.muted; call.local.getAudioTracks().forEach((t) => (t.enabled = !call.muted)); callUI(); };
-$("cCam").onclick = () => { if (!call || !call.local) return; call.camOff = !call.camOff; call.local.getVideoTracks().forEach((t) => (t.enabled = !call.camOff)); callUI(); };
+$("cEnd").onclick = () => { if (!call) return; if (!call.out) decline(); else leaveRoom(), endCall(); };
 $("callBtn").onclick = () => cur && !grp(cur) && startCall(cur.members.find((u) => u !== me.uid), false);
 $("vidBtn").onclick = () => cur && !grp(cur) && startCall(cur.members.find((u) => u !== me.uid), true);
 function listenCalls() {
   unsub.push(onSnapshot(query(collection(db, "calls"), where("to", "==", me.uid), where("state", "==", "ring")), (qs) => qs.docChanges().forEach((ch) => { if (ch.type === "added") incoming(ch.doc); }), () => {}));
 }
-window.addEventListener("beforeunload", () => { if (call) hangup(); });
+window.addEventListener("beforeunload", () => { if (room) leaveRoom(); });

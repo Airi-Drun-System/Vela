@@ -34,6 +34,11 @@
     <div class="sky"><svg id="sky" viewBox="0 0 320 140" role="group" aria-label="Кто в сети"></svg><p id="skyNote"></p></div>
     <button class="upd" id="upd" hidden><span class="updRing"><i id="updBar"></i></span><span><b id="updT"></b><small id="updS"></small></span></button>
     <div class="chats" id="chats"></div>
+    <div class="vbar" id="vbar" hidden>
+      <button class="vbInfo" id="vbOpen"><b>Голосовой: <span id="vbName"></span></b><small id="vbCount"></small></button>
+      <button class="icon" id="vbMic" aria-label="Микрофон"><svg viewBox="0 0 24 24"><path d="M12 3a3 3 0 0 1 3 3v6a3 3 0 0 1-6 0V6a3 3 0 0 1 3-3zm-7 9h2a5 5 0 0 0 10 0h2a7 7 0 0 1-6 6.9V21h-2v-2.1A7 7 0 0 1 5 12z"/></svg></button>
+      <button class="icon bad" id="vbLeave" aria-label="Выйти из голосового"><svg viewBox="0 0 24 24"><path d="M12 9c-1.6 0-3.15.25-4.6.72v3.1a1 1 0 0 1-.56.9 11.5 11.5 0 0 0-2.66 1.85 1 1 0 0 1-1.41 0L.29 13.08a1 1 0 0 1 0-1.41C3.34 8.78 7.46 7 12 7s8.66 1.78 11.71 4.67a1 1 0 0 1 0 1.41l-2.48 2.49a1 1 0 0 1-1.41 0 11.3 11.3 0 0 0-2.67-1.85 1 1 0 0 1-.56-.9v-3.1A15 15 0 0 0 12 9z"/></svg></button>
+    </div>
     <button class="fab" id="newDm" title="Новое сообщение" aria-label="Новое сообщение"><svg viewBox="0 0 24 24"><path d="M3 17.3V21h3.7L17.8 9.9l-3.7-3.7zM20.7 7a1 1 0 0 0 0-1.4l-2.3-2.3a1 1 0 0 0-1.4 0l-1.8 1.8 3.7 3.7z"/></svg></button>
   </aside>
 
@@ -42,6 +47,7 @@
       <button class="icon back" id="back" aria-label="Назад к чатам"><svg viewBox="0 0 24 24"><path d="M15.4 5.4 14 4l-8 8 8 8 1.4-1.4L8.8 12z"/></svg></button>
       <div class="ava" id="cAva"></div>
       <div class="cInfo"><b id="cName"></b><small id="cSub"></small></div>
+      <button class="icon" id="roomBtn" title="Голосовая комната" aria-label="Голосовая комната"><svg viewBox="0 0 24 24"><path d="M12 3a9 9 0 0 0-9 9v7a2 2 0 0 0 2 2h3v-8H5v-1a7 7 0 0 1 14 0v1h-3v8h3a2 2 0 0 0 2-2v-7a9 9 0 0 0-9-9z"/></svg></button>
       <button class="icon" id="callBtn" title="Звонок" aria-label="Звонок"><svg viewBox="0 0 24 24"><path d="M6.6 10.8a15.1 15.1 0 0 0 6.6 6.6l2.2-2.2a1 1 0 0 1 1-.25 11.4 11.4 0 0 0 3.6.57 1 1 0 0 1 1 1V20a1 1 0 0 1-1 1A17 17 0 0 1 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1c0 1.25.2 2.45.57 3.57a1 1 0 0 1-.25 1z"/></svg></button>
       <button class="icon" id="vidBtn" title="Видеозвонок" aria-label="Видеозвонок"><svg viewBox="0 0 24 24"><path d="M3 6h12a1 1 0 0 1 1 1v3.5l5-3.5v10l-5-3.5V17a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1z"/></svg></button>
     </header>
@@ -61,13 +67,20 @@
   <div class="empty" id="emptyChat"><b>Vela</b><p>Выбери чат или звезду слева</p></div>
 </main>
 <div class="sheet" id="prof" hidden><div class="sheetCard profCard"><button class="icon pX" id="prX" aria-label="Закрыть">×</button><div id="prBody"></div><input type="file" id="grpPic" accept="image/*" hidden></div></div>
+<div class="room" id="room" hidden>
+  <header class="rTop"><button class="icon" id="rMin" aria-label="Свернуть"><svg viewBox="0 0 24 24"><path d="M7.4 8.6 12 13.2l4.6-4.6L18 10l-6 6-6-6z"/></svg></button><div><b id="rTitle"></b><small id="rSub"></small></div></header>
+  <div class="rGrid" id="rGrid"></div>
+  <div class="rAudio" id="rAudio"></div>
+  <div class="callBtns rBtns">
+    <button id="rMic" aria-label="Микрофон"><svg viewBox="0 0 24 24"><path d="M12 3a3 3 0 0 1 3 3v6a3 3 0 0 1-6 0V6a3 3 0 0 1 3-3zm-7 9h2a5 5 0 0 0 10 0h2a7 7 0 0 1-6 6.9V21h-2v-2.1A7 7 0 0 1 5 12z"/></svg></button>
+    <button id="rCam" aria-label="Камера"><svg viewBox="0 0 24 24"><path d="M3 6h12a1 1 0 0 1 1 1v3.5l5-3.5v10l-5-3.5V17a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1z"/></svg></button>
+    <button id="rScr" aria-label="Демонстрация экрана"><svg viewBox="0 0 24 24"><path d="M3 4h18a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1h-7v2h3v2H7v-2h3v-2H3a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1zm9 3-4 4h3v3h2v-3h3z"/></svg></button>
+    <button id="rLeave" class="end" aria-label="Выйти"><svg viewBox="0 0 24 24"><path d="M12 9c-1.6 0-3.15.25-4.6.72v3.1a1 1 0 0 1-.56.9 11.5 11.5 0 0 0-2.66 1.85 1 1 0 0 1-1.41 0L.29 13.08a1 1 0 0 1 0-1.41C3.34 8.78 7.46 7 12 7s8.66 1.78 11.71 4.67a1 1 0 0 1 0 1.41l-2.48 2.49a1 1 0 0 1-1.41 0 11.3 11.3 0 0 0-2.67-1.85 1 1 0 0 1-.56-.9v-3.1A15 15 0 0 0 12 9z"/></svg></button>
+  </div>
+</div>
 <div class="call" id="call" hidden>
-  <video id="cRemote" autoplay playsinline></video>
-  <video id="cLocal" autoplay playsinline muted></video>
   <div class="callInfo"><div class="ava big" id="callAva"></div><b id="callName"></b><small id="callSt"></small></div>
   <div class="callBtns">
-    <button id="cMute" aria-label="Микрофон"><svg viewBox="0 0 24 24"><path d="M12 3a3 3 0 0 1 3 3v6a3 3 0 0 1-6 0V6a3 3 0 0 1 3-3zm-7 9h2a5 5 0 0 0 10 0h2a7 7 0 0 1-6 6.9V21h-2v-2.1A7 7 0 0 1 5 12z"/></svg></button>
-    <button id="cCam" aria-label="Камера"><svg viewBox="0 0 24 24"><path d="M3 6h12a1 1 0 0 1 1 1v3.5l5-3.5v10l-5-3.5V17a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1z"/></svg></button>
     <button id="cEnd" class="end" aria-label="Завершить"><svg viewBox="0 0 24 24"><path d="M12 9c-1.6 0-3.15.25-4.6.72v3.1a1 1 0 0 1-.56.9 11.5 11.5 0 0 0-2.66 1.85 1 1 0 0 1-1.41 0L.29 13.08a1 1 0 0 1 0-1.41C3.34 8.78 7.46 7 12 7s8.66 1.78 11.71 4.67a1 1 0 0 1 0 1.41l-2.48 2.49a1 1 0 0 1-1.41 0 11.3 11.3 0 0 0-2.67-1.85 1 1 0 0 1-.56-.9v-3.1A15 15 0 0 0 12 9z"/></svg></button>
     <button id="cOk" class="ok" aria-label="Ответить"><svg viewBox="0 0 24 24"><path d="M6.6 10.8a15.1 15.1 0 0 0 6.6 6.6l2.2-2.2a1 1 0 0 1 1-.25 11.4 11.4 0 0 0 3.6.57 1 1 0 0 1 1 1V20a1 1 0 0 1-1 1A17 17 0 0 1 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1c0 1.25.2 2.45.57 3.57a1 1 0 0 1-.25 1z"/></svg></button>
   </div>
