@@ -18,7 +18,8 @@ import {
   serverTimestamp,
   arrayUnion,
   arrayRemove,
-  deleteField
+  deleteField,
+  writeBatch
 } from "firebase/firestore";
 import { Capacitor } from "@capacitor/core";
 import { LocalNotifications } from "@capacitor/local-notifications";
@@ -146,23 +147,6 @@ async function startApp(u) {
     renderChats();
     renderHead();
   }));
-  const gen = doc(db, "chats", "general");
-  getDoc(gen).then((s) => {
-    if (!s.exists()) setDoc(gen, { public: true, members: [], name: "Общий чат", created: serverTimestamp() }).catch(() => {
-    });
-  }).catch(() => {
-  });
-  unsub.push(onSnapshot(gen, (s) => {
-    if (s.exists()) {
-      chats.set("general", { id: "general", ...s.data() });
-      renderChats();
-      if (cur && cur.id === "general") {
-        cur = chats.get("general");
-        renderHead();
-        markRead();
-      }
-    }
-  }));
   unsub.push(onSnapshot(query(collection(db, "chats"), where("members", "array-contains", me.uid)), (qs) => {
     qs.docChanges().forEach((ch) => {
       if (ch.type === "removed") chats.delete(ch.doc.id);
@@ -180,7 +164,6 @@ async function startApp(u) {
   whereAmI();
   if ("Notification" in window && Notification.permission === "default") Notification.requestPermission().catch(() => {
   });
-  if (!cur && innerWidth > 760) openChat("general");
 }
 function stopAll() {
   unsub.splice(0).forEach((f) => f());
@@ -242,12 +225,15 @@ async function whereAmI() {
     return;
   }
   try {
-    const j = await (await fetch("https://api.ipapi.is/")).json();
-    const loc = j.location || {}, code = loc.country_code || "";
-    const name = code ? new Intl.DisplayNames(["ru"], { type: "region" }).of(code) : "неизвестно";
-    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || "";
-    const tzOff = loc.timezone && tz && loc.timezone.split("/")[0] !== tz.split("/")[0];
-    const vpn = !!(j.is_vpn || j.is_proxy || j.is_tor || j.is_datacenter || tzOff);
+    const get = (u) => fetch(u, { cache: "no-store" }).then((r) => r.ok ? r.json() : null).catch(() => null);
+    const [a, b, c] = await Promise.all([get("https://api.ipapi.is/"), get("https://ipwho.is/"), get("https://api.country.is/")]);
+    const loc = a && a.location || {};
+    const code = String(loc.country_code || b && b.success !== false && b.country_code || c && c.country || "").toUpperCase();
+    if (!code) throw 0;
+    const name = new Intl.DisplayNames(["ru"], { type: "region" }).of(code);
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || "", ipTz = loc.timezone || b && b.timezone && b.timezone.id || "";
+    const tzOff = ipTz && tz && ipTz.split("/")[0] !== tz.split("/")[0];
+    const vpn = !!(a && (a.is_vpn || a.is_proxy || a.is_tor || a.is_datacenter) || b && b.security && (b.security.vpn || b.security.proxy || b.security.tor) || tzOff);
     shape = countryStars(code, 24);
     Object.assign(place, { code, vpn, text: vpn ? `Ты подключён через VPN: выход в стране ${name}` : `Ты сейчас: ${name}` });
   } catch {
@@ -328,6 +314,7 @@ function openSettings() {
   pPhoto = me.photo || null;
   pHue = me.hue != null ? me.hue : null;
   $("pName").value = me.name;
+  $("pUser").value = me.username || "";
   $("pStatus").value = me.status || "";
   swatches("pHue", [12, 30, 48, 140, 172, 200, 225, 330, 0], pHue, (c) => {
     pHue = c;
@@ -374,11 +361,13 @@ $("pPic").onchange = async () => {
   $("pPic").value = "";
   if (!f) return;
   try {
-    const bmp = await createImageBitmap(f), m = Math.min(bmp.width, bmp.height), c = document.createElement("canvas");
+    const bmp = await createImageBitmap(f).catch(() => new Promise((ok, no) => { const i = new Image(); i.onload = () => ok(i); i.onerror = no; i.src = URL.createObjectURL(f); }));
+    const w = bmp.width || bmp.naturalWidth, h = bmp.height || bmp.naturalHeight, m = Math.min(w, h), c = document.createElement("canvas");
     c.width = c.height = 192;
-    c.getContext("2d").drawImage(bmp, (bmp.width - m) / 2, (bmp.height - m) / 2, m, m, 0, 0, 192, 192);
-    pPhoto = c.toDataURL("image/jpeg", 0.82);
+    c.getContext("2d").drawImage(bmp, (w - m) / 2, (h - m) / 2, m, m, 0, 0, 192, 192);
+    for (let q = 0.85; q >= 0.3; q -= 0.15) { pPhoto = c.toDataURL("image/jpeg", q); if (pPhoto.length < 70000) break; }
     profAva();
+    await updateDoc(doc(db, "users", me.uid), { photo: pPhoto }).then(() => toast("Фото поставлено"), (e) => toast("Фото не сохранилось: " + (e.code || e.message)));
   } catch {
     toast("Это фото не открылось");
   }
@@ -395,11 +384,24 @@ $("pSave").onclick = async () => {
   }
   const data = { name, status: $("pStatus").value.trim().slice(0, 70), photo: pPhoto || deleteField() };
   if (pHue != null) data.hue = pHue;
+  const un = $("pUser").value.trim().toLowerCase().replace(/^@/, "");
+  if (un && !/^[a-z0-9_]{4,24}$/.test(un)) { toast("Юзернейм: от 4 до 24 латинских букв, цифр и _"); return; }
   try {
-    await updateDoc(doc(db, "users", me.uid), data);
+    const b = writeBatch(db);
+    if (un !== (me.username || "")) {
+      if (un) {
+        const taken = await getDoc(doc(db, "usernames", un));
+        if (taken.exists() && taken.data().uid !== me.uid) { toast("@" + un + " уже занят"); return; }
+        b.set(doc(db, "usernames", un), { uid: me.uid });
+      }
+      if (me.username) b.delete(doc(db, "usernames", me.username));
+      data.username = un || deleteField();
+    }
+    b.update(doc(db, "users", me.uid), data);
+    await b.commit();
     toast("Профиль сохранён");
-  } catch {
-    toast("Не сохранилось");
+  } catch (e) {
+    toast("Не сохранилось: " + (e.code || e.message));
   }
 };
 $("oStars").onchange = () => {
@@ -506,35 +508,89 @@ function renderSky() {
   $("skyNote").textContent = people.length < 2 ? "Пока тут только ты. Дай друзьям код приглашения." : on ? `В сети: ${on} из ${people.length - 1}. Нажми на звезду, чтобы написать` : "Сейчас никого. Нажми на звезду, чтобы написать";
 }
 drawSky($("authSky"), [0, 2, 4, 6, 9].reduce((a, i) => (a[i] = { name: "", on: true }, a), []));
-const chatTitle = (c) => c.public ? c.name : nameOf(c.members.find((m) => m !== me.uid) || me.uid);
+const grp = (c) => !!(c && (c.public || c.group));
+const chatTitle = (c) => grp(c) ? c.name : nameOf(c.members.find((m) => m !== me.uid) || me.uid);
 const unread = (c) => c.last && c.last.uid !== me.uid && (!c.reads || !c.reads[me.uid] || c.reads[me.uid].toMillis() < (c.last.ts ? c.last.ts.toMillis() : 0));
 function renderChats() {
   if (!me) return;
   renderSky();
-  const list = [...chats.values()].sort((a, b) => b.public - a.public || (b.last && b.last.ts ? b.last.ts.toMillis() : 0) - (a.last && a.last.ts ? a.last.ts.toMillis() : 0));
+  const q = $("q").value.trim().toLowerCase().replace(/^@/, "");
+  const list = [...chats.values()].sort((a, b) => (b.last && b.last.ts ? b.last.ts.toMillis() : 0) - (a.last && a.last.ts ? a.last.ts.toMillis() : 0))
+    .filter((c) => !q || chatTitle(c).toLowerCase().includes(q));
   const box = $("chats");
   box.textContent = "";
+  if (q) {
+    const people = [...users.values()].filter((u) => u.uid !== me.uid && (u.name.toLowerCase().includes(q) || (u.username || "").includes(q)));
+    if (people.length) {
+      const h = document.createElement("div"); h.className = "secT"; h.textContent = "Люди"; box.appendChild(h);
+      for (const u of people) {
+        const el = document.createElement("button");
+        el.className = "ci";
+        el.innerHTML = '<div class="ava"></div><div class="ciT"><b></b><small></small></div>';
+        avatar(el.querySelector(".ava"), u.name, u.uid, isOnline(u.seen));
+        el.querySelector("b").textContent = u.name;
+        el.querySelector("small").textContent = u.username ? "@" + u.username : isOnline(u.seen) ? "в сети" : "был(а) " + fmtDay(u.seen);
+        el.onclick = () => { $("q").value = ""; openDm(u.uid); };
+        box.appendChild(el);
+      }
+    }
+    if (list.length) { const h = document.createElement("div"); h.className = "secT"; h.textContent = "Чаты"; box.appendChild(h); }
+    if (!list.length && !people.length) { const h = document.createElement("div"); h.className = "secT"; h.textContent = "Ничего не нашлось"; box.appendChild(h); }
+  } else if (!list.length) {
+    const h = document.createElement("div"); h.className = "secT"; h.textContent = "Чатов пока нет. Нажми на карандаш, чтобы написать кому-нибудь или создать группу"; box.appendChild(h);
+  }
   for (const c of list) {
-    const other = c.public ? null : users.get(c.members.find((m) => m !== me.uid));
+    const other = grp(c) ? null : users.get(c.members.find((m) => m !== me.uid));
     const el = document.createElement("button");
     el.className = "ci" + (cur && cur.id === c.id ? " sel" : "") + (unread(c) ? " new" : "");
     el.innerHTML = '<div class="ava"></div><div class="ciT"><b></b><small></small></div><i></i>';
     const ava = el.querySelector(".ava");
-    if (c.public) {
+    if (grp(c)) {
       ava.classList.add("grp");
       ava.innerHTML = '<svg viewBox="0 0 24 24"><path d="M9 11a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm8 0a3 3 0 1 1 0-6 3 3 0 0 1 0 6zM2 20c0-4 3-6 7-6s7 2 7 6zm15 0c0-2-.6-3.6-1.8-4.7C19 15.4 22 16.6 22 20z"/></svg>';
     } else avatar(ava, chatTitle(c), other && other.uid, other && isOnline(other.seen));
     el.querySelector("b").textContent = chatTitle(c);
     const l = c.last;
-    el.querySelector("small").textContent = l ? (l.uid === me.uid ? "Ты: " : c.public ? nameOf(l.uid) + ": " : "") + l.text : "Пока пусто";
+    el.querySelector("small").textContent = l ? (l.uid === me.uid ? "Ты: " : grp(c) ? nameOf(l.uid) + ": " : "") + l.text : "Пока пусто";
     el.onclick = () => openChat(c.id);
     box.appendChild(el);
   }
 }
-$("newDm").onclick = () => {
+$("q").addEventListener("input", renderChats);
+$("q").addEventListener("keydown", (e) => { if (e.key === "Escape") { $("q").value = ""; renderChats(); } });
+function newDm() {
   const others = [...users.values()].filter((u) => u.uid !== me.uid);
-  sheet("Написать лично", others.length ? others.map((u) => ({ t: u.name, sub: (isOnline(u.seen) ? "в сети" : "был(а) " + fmtDay(u.seen)) + (u.status ? " · " + u.status : ""), uid: u.uid, f: () => openDm(u.uid) })) : [{ t: "Пока ты тут один. Позови друзей и дай им код приглашения." }]);
-};
+  sheet("Новый чат", others.length ? others.map((u) => ({ t: u.name, sub: (u.username ? "@" + u.username + " · " : "") + (isOnline(u.seen) ? "в сети" : "был(а) " + fmtDay(u.seen)), uid: u.uid, f: () => openDm(u.uid) })) : [{ t: "Пока ты тут один. Позови друзей и дай им код приглашения." }]);
+}
+function newGroup() {
+  const others = [...users.values()].filter((u) => u.uid !== me.uid);
+  if (!others.length) { toast("Сначала позови друзей"); return; }
+  $("shTitle").textContent = "Новая группа";
+  const body = $("shBody");
+  body.innerHTML = '<input class="gname" id="gName" maxlength="40" placeholder="Название группы"><div class="gpick" id="gPick"></div><button class="main" id="gGo">Создать</button>';
+  for (const u of others) {
+    const l = document.createElement("label");
+    l.innerHTML = '<input type="checkbox"><div class="ava"></div><div><b></b></div>';
+    l.querySelector("input").value = u.uid;
+    avatar(l.querySelector(".ava"), u.name, u.uid, isOnline(u.seen));
+    l.querySelector("b").textContent = u.name;
+    $("gPick").appendChild(l);
+  }
+  $("gGo").onclick = async () => {
+    const name = $("gName").value.trim(), picked = [...$("gPick").querySelectorAll("input:checked")].map((i) => i.value);
+    if (!name) { toast("Назови группу"); return; }
+    if (!picked.length) { toast("Выбери хотя бы одного"); return; }
+    try {
+      const ref = await addDoc(collection(db, "chats"), { group: true, public: false, name, members: [me.uid, ...picked], owner: me.uid, created: serverTimestamp() });
+      $("sheet").hidden = true;
+      chats.set(ref.id, { id: ref.id, group: true, public: false, name, members: [me.uid, ...picked] });
+      openChat(ref.id);
+    } catch (e) { toast("Не создалась: " + (e.code || e.message)); }
+  };
+  $("sheet").hidden = false;
+  $("gName").focus();
+}
+$("newDm").onclick = () => menu([{ t: "Новый чат", f: newDm }, { t: "Новая группа", f: newGroup }], $("newDm"));
 async function openDm(uid) {
   const id = dmId(me.uid, uid);
   if (!chats.has(id)) {
@@ -594,16 +650,16 @@ $("msgs").addEventListener("scroll", () => {
 let keepScroll = 0;
 function renderHead() {
   if (!cur) return;
-  const other = cur.public ? null : users.get(cur.members.find((m) => m !== me.uid));
+  const other = grp(cur) ? null : users.get(cur.members.find((m) => m !== me.uid));
   $("cName").textContent = chatTitle(cur);
   const ava = $("cAva");
-  ava.className = "ava" + (cur.public ? " grp" : "");
-  if (cur.public) {
+  ava.className = "ava" + (grp(cur) ? " grp" : "");
+  if (grp(cur)) {
     ava.innerHTML = $("chats").querySelector(".grp") ? $("chats").querySelector(".grp").innerHTML : "";
   } else avatar(ava, chatTitle(cur), other && other.uid, other && isOnline(other.seen));
   const typing = Object.entries(cur.typing || {}).filter(([u, t]) => u !== me.uid && t && Date.now() - t.toMillis() < 6e3).map(([u]) => nameOf(u));
   $("cSub").classList.toggle("typing", typing.length > 0);
-  $("cSub").textContent = typing.length ? cur.public ? typing.join(", ") + " печата" + (typing.length > 1 ? "ют…" : "ет…") : "печатает…" : cur.public ? [...users.values()].filter((u) => isOnline(u.seen)).length + " в сети из " + users.size : other ? (isOnline(other.seen) ? "в сети" : "был(а) " + fmtDay(other.seen)) + (other.status ? " · " + other.status : "") : "";
+  $("cSub").textContent = typing.length ? grp(cur) ? typing.join(", ") + " печата" + (typing.length > 1 ? "ют…" : "ет…") : "печатает…" : grp(cur) ? cur.members.length + " участник" + (cur.members.length % 10 === 1 && cur.members.length % 100 !== 11 ? "" : cur.members.length % 10 >= 2 && cur.members.length % 10 <= 4 && (cur.members.length % 100 < 10 || cur.members.length % 100 >= 20) ? "а" : "ов") + ", в сети " + cur.members.filter((u) => u === me.uid || users.get(u) && isOnline(users.get(u).seen)).length : other ? (isOnline(other.seen) ? "в сети" : "был(а) " + fmtDay(other.seen)) + (other.status ? " · " + other.status : "") : "";
 }
 setInterval(renderHead, 3e3);
 const REACTS = ["❤️", "😂", "👍", "🔥", "😮", "😢"];
@@ -628,14 +684,14 @@ function renderMsgs(jump) {
     el.className = "m" + (mine ? " mine" : "") + (cont ? " cont" : "");
     el.dataset.id = m.id;
     let html = "";
-    if (!mine && cur.public && !cont) html += `<b class="who" style="--h:${hueOf(m.uid)}"></b>`;
+    if (!mine && grp(cur) && !cont) html += `<b class="who" style="--h:${hueOf(m.uid)}"></b>`;
     if (m.reply) html += '<div class="q"><b></b><span></span></div>';
     if (m.img) html += '<img class="pic" alt="Фото" loading="lazy">';
     if (m.voice) html += '<audio class="voice" controls preload="none"></audio>';
     if (m.text) html += '<div class="t"></div>';
     html += '<span class="meta"></span>';
     el.innerHTML = '<div class="bub">' + html + "</div>";
-    if (!mine && cur.public && !cont) el.querySelector(".who").textContent = nameOf(m.uid);
+    if (!mine && grp(cur) && !cont) el.querySelector(".who").textContent = nameOf(m.uid);
     if (m.reply) {
       el.querySelector(".q b").textContent = nameOf(m.reply.uid);
       el.querySelector(".q span").textContent = m.reply.text;

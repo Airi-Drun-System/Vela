@@ -27,12 +27,13 @@
 <main id="app" class="app" hidden>
   <aside class="side" id="side">
     <header class="sideTop">
-      <div class="me" id="me"></div>
-      <button class="icon" id="setBtn" title="Настройки" aria-label="Настройки"><svg viewBox="0 0 24 24"><path d="M19.4 13a7.5 7.5 0 0 0 0-2l2.1-1.6-2-3.5-2.5 1a7.6 7.6 0 0 0-1.7-1L15 3h-4l-.4 2.9a7.6 7.6 0 0 0-1.7 1l-2.5-1-2 3.5L6.6 11a7.5 7.5 0 0 0 0 2l-2.1 1.6 2 3.5 2.5-1c.5.4 1.1.7 1.7 1L11 21h4l.4-2.9c.6-.3 1.2-.6 1.7-1l2.5 1 2-3.5zM13 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z" transform="translate(-1 0)"/></svg></button>
-      <button class="icon" id="newDm" title="Новый личный чат" aria-label="Новый личный чат"><svg viewBox="0 0 24 24"><path d="M11 5h2v6h6v2h-6v6h-2v-6H5v-2h6z"/></svg></button>
+      <button class="icon" id="setBtn" title="Настройки" aria-label="Меню и настройки"><svg viewBox="0 0 24 24"><path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h16v2H4z"/></svg></button>
+      <label class="search"><svg viewBox="0 0 24 24"><path d="M10 3a7 7 0 0 1 5.6 11.2l5.1 5.1-1.4 1.4-5.1-5.1A7 7 0 1 1 10 3zm0 2a5 5 0 1 0 0 10 5 5 0 0 0 0-10z"/></svg><input id="q" placeholder="Поиск" autocomplete="off" spellcheck="false"></label>
     </header>
+    <div class="me" id="me" hidden></div>
     <div class="sky"><svg id="sky" viewBox="0 0 320 140" role="group" aria-label="Кто в сети"></svg><p id="skyNote"></p></div>
     <div class="chats" id="chats"></div>
+    <button class="fab" id="newDm" title="Новое сообщение" aria-label="Новое сообщение"><svg viewBox="0 0 24 24"><path d="M3 17.3V21h3.7L17.8 9.9l-3.7-3.7zM20.7 7a1 1 0 0 0 0-1.4l-2.3-2.3a1 1 0 0 0-1.4 0l-1.8 1.8 3.7 3.7z"/></svg></button>
   </aside>
 
   <section class="chat" id="chat" hidden>
@@ -62,7 +63,8 @@
       <label class="bigAva" id="pAva" title="Сменить фото"><input type="file" id="pPic" accept="image/*" hidden><span></span></label>
       <div class="profF">
         <input id="pName" maxlength="24" placeholder="Ник">
-        <input id="pStatus" maxlength="70" placeholder="Статус: чем занят, настроение…">
+        <label class="uname"><span>@</span><input id="pUser" maxlength="24" placeholder="имя_пользователя" autocomplete="off" spellcheck="false"></label>
+        <input id="pStatus" maxlength="70" placeholder="О себе">
         <button class="link" id="pNoPic">Убрать фото</button>
       </div>
     </div>
