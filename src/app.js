@@ -1467,7 +1467,8 @@ function makePeer(u) {
   const pc = new RTCPeerConnection(ICE), p = { pc, polite: me.uid > u, making: false, ignore: false, streams: new Map() };
   room.peers.set(u, p);
   room.local.getTracks().forEach((t) => pc.addTrack(t, room.local));
-  if (room.screen) room.screen.getTracks().forEach((t) => pc.addTrack(t, room.screen));
+  if (room.screen) addScreen(pc, room.screen);
+  pc.onsignalingstatechange = () => { if (pc.signalingState === "stable") tune(pc); };
   const cid = room.cid;
   const sig = (d) => addDoc(collection(db, "chats", cid, "sig"), { from: me.uid, to: u, d: JSON.stringify(d), ts: serverTimestamp() }).catch(() => {});
   p.sig = sig;
@@ -1543,23 +1544,62 @@ async function toggleCam() {
   setVoice(room.cid, myVoice());
   renderRoom();
 }
-async function toggleScreen() {
+const QUAL = {
+  g60: { t: "1080p 60 fps — игры", w: 1920, h: 1080, fps: 60, br: 8e6, hint: "motion" },
+  g30: { t: "1080p 30 fps", w: 1920, h: 1080, fps: 30, br: 5e6, hint: "motion" },
+  txt: { t: "1080p чёткий — текст и код", w: 1920, h: 1080, fps: 15, br: 4e6, hint: "detail" },
+  low: { t: "720p 30 fps — слабый интернет", w: 1280, h: 720, fps: 30, br: 2.5e6, hint: "motion" }
+};
+let qual = QUAL[LS("qual", "g60")] ? LS("qual", "g60") : "g60";
+function tune(pc) {
+  if (!room || !room.screen) return;
+  const q = QUAL[qual], ids = new Set(room.screen.getVideoTracks().map((t) => t.id));
+  pc.getSenders().forEach((s) => {
+    if (!s.track || !ids.has(s.track.id)) return;
+    const p = s.getParameters();
+    if (!p.encodings || !p.encodings.length) return;
+    p.encodings[0].maxBitrate = q.br;
+    p.encodings[0].maxFramerate = q.fps;
+    p.degradationPreference = q.hint === "detail" ? "maintain-resolution" : "maintain-framerate";
+    s.setParameters(p).catch(() => {});
+  });
+}
+function addScreen(pc, s) {
+  s.getTracks().forEach((t) => {
+    const snd = pc.addTrack(t, s);
+    if (t.kind !== "video") return;
+    try {
+      const tr = pc.getTransceivers().find((x) => x.sender === snd), caps = RTCRtpSender.getCapabilities("video").codecs;
+      const fast = caps.filter((c) => /h264/i.test(c.mimeType)), rest = caps.filter((c) => !/h264/i.test(c.mimeType));
+      if (tr && fast.length && tr.setCodecPreferences) tr.setCodecPreferences([...fast, ...rest]);
+    } catch {}
+  });
+}
+async function startScreen(k) {
+  qual = k;
+  setLS("qual", k);
+  const q = QUAL[k];
+  try {
+    const s = await navigator.mediaDevices.getDisplayMedia({ video: { width: { ideal: q.w }, height: { ideal: q.h }, frameRate: { ideal: q.fps, max: q.fps } }, audio: true });
+    if (!room) return s.getTracks().forEach((t) => t.stop());
+    s.getVideoTracks().forEach((t) => { t.contentHint = q.hint; });
+    room.screen = s;
+    eachPc((pc) => addScreen(pc, s));
+    s.getTracks().forEach((t) => { t.onended = () => { if (room && room.screen === s) toggleScreen(); }; });
+    setVoice(room.cid, myVoice());
+    renderRoom();
+  } catch {}
+}
+function toggleScreen() {
   if (!room) return;
   if (room.screen) {
     const s = room.screen;
     room.screen = null;
     s.getTracks().forEach(dropTrack);
-  } else {
-    try {
-      const s = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: { ideal: 30 }, width: { ideal: 1920 } }, audio: true });
-      room.screen = s;
-      s.getTracks().forEach((t) => { eachPc((pc) => pc.addTrack(t, s)); t.onended = () => { if (room && room.screen === s) toggleScreen(); }; });
-    } catch {
-      return;
-    }
+    setVoice(room.cid, myVoice());
+    return renderRoom();
   }
-  setVoice(room.cid, myVoice());
-  renderRoom();
+  menu(Object.entries(QUAL).map(([k, q]) => ({ t: (k === qual ? "• " : "") + q.t, f: () => startScreen(k) })), $("rScr"));
 }
 const ac = { ctx: null, an: new Map() };
 function level(key, stream) {
