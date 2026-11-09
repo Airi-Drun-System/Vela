@@ -274,6 +274,7 @@ function applyLook() {
   document.body.classList.toggle("night", look.theme === "night");
   document.body.classList.toggle("glass", look.theme === "glass" || look.theme === "mono");
   document.body.classList.toggle("mono", look.theme === "mono");
+  document.body.classList.toggle("md", look.theme === "md");
   document.body.classList.toggle("calm", !look.stars);
   document.body.className = document.body.className.replace(/\b(ma|td|tt)-\w+/g, "").trim() + ` ma-${look.anim} td-${look.dots} tt-${look.type}`;
 }

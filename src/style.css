@@ -3166,3 +3166,242 @@ body.glass.mono .rBtns button:not(.end):not(.on):not(.off) {
     background: rgba(14, 14, 15, .7);
   }
 }
+body.md {
+  --md-bg: color-mix(in srgb, var(--sig) 5%, #111316);
+  --md-c1: color-mix(in srgb, var(--sig) 8%, #17191d);
+  --md-c2: color-mix(in srgb, var(--sig) 12%, #1d1f24);
+  --md-c3: color-mix(in srgb, var(--sig) 16%, #24262b);
+  --md-p: color-mix(in srgb, var(--sig) 58%, #ffffff);
+  --md-on-p: color-mix(in srgb, var(--sig) 40%, #000000);
+  --md-pc: color-mix(in srgb, var(--sig) 42%, #121212);
+  --md-on-pc: color-mix(in srgb, var(--sig) 18%, #ffffff);
+  --paper: var(--md-bg);
+  --paper2: var(--md-c2);
+  --paper3: var(--md-c3);
+  --night: var(--md-c1);
+  --night2: var(--md-c2);
+  --ink: #e3e2e6;
+  --ink2: #c3c6cf;
+  --star: #e3e2e6;
+  background: var(--md-bg);
+  color: var(--ink);
+}
+html:has(body.md) {
+  background: color-mix(in srgb, var(--sig) 5%, #111316);
+}
+body.md .app {
+  gap: 0;
+}
+body.md .side {
+  background: var(--md-c1);
+  color: var(--ink);
+  border-radius: 0 28px 28px 0;
+}
+body.md .chat, body.md .empty {
+  background: var(--md-bg);
+}
+body.md .search {
+  height: 48px;
+  border-radius: 28px;
+  background: var(--md-c3);
+  color: var(--ink2);
+}
+body.md .search input {
+  color: var(--ink);
+}
+body.md .ci {
+  margin: 2px 8px;
+  border-radius: 28px;
+  width: calc(100% - 16px);
+}
+body.md .ci:hover {
+  background: var(--md-c2);
+}
+body.md .ci.sel {
+  background: var(--md-pc);
+  color: var(--md-on-pc);
+  box-shadow: none;
+}
+body.md .ci.sel small {
+  color: color-mix(in srgb, var(--md-on-pc) 75%, transparent);
+}
+body.md .ci i {
+  background: var(--md-p);
+}
+body.md .secT {
+  color: var(--md-p);
+}
+body.md .fab {
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  background: var(--md-pc);
+  color: var(--md-on-pc);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, .35);
+}
+body.md .chatTop {
+  background: var(--md-bg);
+}
+body.md .chatTop .icon, body.md .composer .icon {
+  color: var(--ink2);
+}
+body.md .bub {
+  border-radius: 20px;
+}
+body.md .m:not(.mine) .bub {
+  background: var(--md-c3);
+  color: var(--ink);
+  border-bottom-left-radius: 6px;
+}
+body.md .m.mine .bub {
+  background: var(--md-pc);
+  color: var(--md-on-pc);
+  border-bottom-right-radius: 6px;
+}
+body.md .m.mine .meta, body.md .meta {
+  color: color-mix(in srgb, currentColor 65%, transparent);
+}
+body.md .composer {
+  border-radius: 28px;
+  background: var(--md-c2);
+  box-shadow: none;
+}
+body.md .send {
+  border-radius: 16px;
+  background: var(--md-p);
+  color: var(--md-on-p) !important;
+  box-shadow: none;
+}
+body.md .send svg {
+  stroke: var(--md-on-p);
+}
+body.md .main {
+  border-radius: 20px;
+  background: var(--md-p);
+  color: var(--md-on-p);
+  box-shadow: none;
+}
+body.md .sheet {
+  background: rgba(0, 0, 0, .5);
+}
+body.md .sheetCard {
+  border-radius: 28px;
+  background: var(--md-c2);
+  color: var(--ink);
+}
+body.md .seg2 {
+  background: transparent;
+  padding: 0;
+  gap: 0;
+  border: 1px solid color-mix(in srgb, var(--ink2) 40%, transparent);
+  border-radius: 20px;
+  overflow: hidden;
+}
+body.md .seg2 button {
+  border-radius: 0;
+  color: var(--ink);
+}
+body.md .seg2 button + button {
+  border-left: 1px solid color-mix(in srgb, var(--ink2) 40%, transparent);
+}
+body.md .seg2 button.on {
+  background: color-mix(in srgb, var(--sig) 30%, #2a2b30);
+  color: var(--md-on-pc);
+}
+body.md .seg2.wrap {
+  border: 0;
+  gap: 8px;
+}
+body.md .seg2.wrap button {
+  border: 1px solid color-mix(in srgb, var(--ink2) 40%, transparent);
+  border-radius: 8px;
+}
+body.md .seg2.wrap button.on {
+  border-color: transparent;
+}
+body.md input[type="checkbox"] {
+  accent-color: var(--md-p);
+}
+body.md .profF input, body.md .profF textarea, body.md .uname, body.md .gname, body.md .chip, body.md .col, body.md .verRow {
+  background: var(--md-c3);
+  color: var(--ink);
+}
+body.md .menu {
+  background: var(--md-c3);
+  color: var(--ink);
+  border-radius: 12px;
+}
+body.md .upd {
+  background: var(--md-pc);
+  color: var(--md-on-pc);
+  box-shadow: none;
+  border-radius: 28px;
+}
+body.md .vbar {
+  background: var(--md-c3);
+  border-radius: 28px;
+}
+body.md .ciV, body.md .vbInfo b {
+  color: var(--md-p);
+}
+body.md .room {
+  background: var(--md-bg);
+}
+body.md .tile {
+  background: var(--md-c2);
+  border-radius: 16px;
+}
+body.md .tile.talk {
+  box-shadow: inset 0 0 0 3px var(--md-p);
+}
+body.md .rBtns button {
+  border-radius: 16px;
+  background: var(--md-c3);
+}
+body.md .rBtns button.on {
+  background: var(--md-p);
+  color: var(--md-on-p);
+}
+body.md .rBtns .end {
+  border-radius: 16px;
+}
+body.md .file i, body.md .callM i {
+  background: var(--md-p);
+  color: var(--md-on-p);
+}
+body.md .m.mine .file i, body.md .m.mine .callM i {
+  background: color-mix(in srgb, var(--md-on-pc) 20%, transparent);
+  color: var(--md-on-pc);
+}
+body.md .tyB {
+  background: var(--md-c3);
+}
+body.md .sky {
+  margin: 4px 12px;
+  padding: 6px 8px 10px;
+  border-radius: 24px;
+  background: var(--md-c2);
+}
+body.md .day {
+  background: var(--md-c2);
+  border-radius: 12px;
+  padding: 3px 12px;
+  color: var(--ink2);
+}
+@media (max-width: 760px) {
+  body.md .side {
+    border-radius: 0;
+  }
+}
+body.md .ava {
+  border-radius: 50%;
+  background-size: cover;
+  background-position: center;
+}
+body.md .ava.on::after {
+  border-radius: 50%;
+  box-shadow: 0 0 0 3px var(--md-c1);
+}
+body.md .ci.new i {
+  box-shadow: none;
+}
