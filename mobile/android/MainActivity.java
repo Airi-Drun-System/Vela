@@ -8,5 +8,6 @@ public class MainActivity extends BridgeActivity {
     public void onCreate(Bundle savedInstanceState) {
         registerPlugin(VelaUpdate.class);
         super.onCreate(savedInstanceState);
+        getBridge().getWebView().getSettings().setTextZoom(100);
     }
 }

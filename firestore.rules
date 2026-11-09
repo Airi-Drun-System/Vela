@@ -14,7 +14,10 @@ service cloud.firestore {
         && request.resource.data.name is string && request.resource.data.name.size() > 0 && request.resource.data.name.size() <= 24;
       allow update: if signed() && request.auth.uid == uid && request.resource.data.code == resource.data.code
         && request.resource.data.name is string && request.resource.data.name.size() > 0 && request.resource.data.name.size() <= 24
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'status', 'photo', 'hue', 'seen', 'username'])
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'status', 'photo', 'hue', 'seen', 'username', 'about', 'banner', 'c1', 'c2', 'presence'])
+        && (!('about' in request.resource.data) || (request.resource.data.about is string && request.resource.data.about.size() <= 190))
+        && (!('banner' in request.resource.data) || (request.resource.data.banner is string && request.resource.data.banner.size() <= 120000 && request.resource.data.banner.matches('data:image/jpeg;base64,.*')))
+        && (!('presence' in request.resource.data) || request.resource.data.presence in ['on', 'idle', 'dnd', 'inv'])
         && (!('username' in request.resource.data) || getAfter(/databases/$(db)/documents/usernames/$(request.resource.data.username)).data.uid == request.auth.uid)
         && (!('status' in request.resource.data) || request.resource.data.status.size() <= 70)
         && (!('photo' in request.resource.data) || (request.resource.data.photo is string && request.resource.data.photo.size() <= 80000

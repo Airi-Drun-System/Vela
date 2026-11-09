@@ -106,6 +106,7 @@ const toast = (t) => {
     el.hidden = true;
   }, 2600);
 };
+const onl = (u) => !!u && (u.uid === (me && me.uid) || u.presence !== "inv") && isOnline(u.seen);
 const nameOf = (uid) => (users.get(uid) || {}).name || "…";
 const prevOf = (m) => m.text || (m.img ? "Фото" : m.voice ? "Голосовое" : m.file ? "Файл: " + m.file.name : m.call ? (m.call.video ? "Видеозвонок" : "Звонок") : "");
 const sizeOf = (n) => n < 1024 ? n + " Б" : n < 1048576 ? (n / 1024).toFixed(0) + " КБ" : (n / 1048576).toFixed(1) + " МБ";
@@ -116,6 +117,7 @@ const avatar = (el, name, uid, online) => {
   el.style.backgroundImage = u.photo ? `url("${u.photo}")` : "";
   el.classList.toggle("pic", !!u.photo);
   el.classList.toggle("on", !!online);
+  el.dataset.p = online ? u.presence || "on" : "";
 };
 let signUp = false;
 function authMode(up) {
@@ -261,7 +263,7 @@ const setLS = (k, v) => {
   }
 };
 const ACC = ["#FF4F1F", "#2FB7A4", "#3D7BFF", "#E8B321", "#E8436F", "#7FBF3F"];
-const look = { acc: LS("acc", ACC[0]), theme: LS("theme", "glass"), size: LS("size", 16), bub: LS("bub", 22), stars: LS("stars", true), anim: LS("anim", "spring"), dots: LS("dots", "wave"), type: LS("type", "glow") };
+const look = { acc: LS("acc", ACC[0]), theme: LS("theme", "mono"), size: LS("size", 16), bub: LS("bub", 22), stars: LS("stars", true), anim: LS("anim", "spring"), dots: LS("dots", "wave"), type: LS("type", "glow") };
 function applyLook() {
   const r = document.documentElement.style;
   r.setProperty("--sig", look.acc);
@@ -364,11 +366,35 @@ function swatches(id, list, val, on) {
     box.appendChild(b);
   });
 }
+let pBan = null, pPres = "on";
 function profAva() {
-  const a = $("pAva").querySelector("span"), h = pHue != null ? pHue : hueOf(me.uid);
-  $("pAva").style.setProperty("--h", h);
-  $("pAva").style.backgroundImage = pPhoto ? `url("${pPhoto}")` : "";
-  a.textContent = pPhoto ? "" : initials($("pName").value || me.name);
+  profCard($("pPrev"), { ...me, name: $("pName").value || me.name, username: $("pUser").value.trim().toLowerCase().replace(/^@/, ""), photo: pPhoto, banner: pBan, c1: $("pC1").value, c2: $("pC2").value, presence: pPres, status: $("pStatus").value, about: $("pAbout").value }, true);
+}
+function profCard(box, u, preview) {
+  box.textContent = "";
+  box.style.setProperty("--c1", u.c1 || "#2b2d31");
+  box.style.setProperty("--c2", u.c2 || "#111214");
+  const ban = el("div", "pcBan");
+  if (u.banner) ban.style.backgroundImage = `url("${u.banner}")`;
+  const wrap = el("div", "pcAva"), a = el("div", "ava big");
+  a.textContent = u.photo ? "" : initials(u.name || "?");
+  a.style.setProperty("--h", u.hue != null ? u.hue : hueOf(u.uid || u.name));
+  a.style.backgroundImage = u.photo ? `url("${u.photo}")` : "";
+  a.classList.toggle("pic", !!u.photo);
+  const on = preview ? u.presence !== "inv" : onl(u);
+  a.classList.toggle("on", on);
+  a.dataset.p = on ? u.presence || "on" : "";
+  wrap.append(a);
+  const body = el("div", "pcBody");
+  body.append(el("h2", "", u.name || "…"));
+  if (u.username) body.append(el("small", "pcUser", "@" + u.username));
+  const pres = { on: "В сети", idle: "Не на месте", dnd: "Не беспокоить", inv: "Невидимка" };
+  const line = el("div", "pcStat", (on ? pres[u.presence || "on"] : u.seen ? "был(а) " + fmtDay(u.seen) : "не в сети") + (u.status ? " · " + u.status : ""));
+  body.append(line);
+  if (u.about) { const s = el("div", "pcSec"); s.append(el("b", "", "Обо мне"), el("p", "", u.about)); body.append(s); }
+  if (u.joined && u.joined.toDate) { const s = el("div", "pcSec"); s.append(el("b", "", "В Vela с"), el("p", "", u.joined.toDate().toLocaleDateString("ru", { day: "numeric", month: "long", year: "numeric" }))); body.append(s); }
+  box.append(ban, wrap, body);
+  return body;
 }
 $("sVer").onclick = () => { if (upd.s === "get" || upd.s === "ready" || upd.s === "fail") { $("setDlg").hidden = true; $("upd").click(); } else checkUpd(); };
 function openSettings() {
@@ -377,13 +403,15 @@ function openSettings() {
   showUpd();
   pPhoto = me.photo || null;
   pHue = me.hue != null ? me.hue : null;
+  pBan = me.banner || null;
+  pPres = me.presence || "on";
   $("pName").value = me.name;
   $("pUser").value = me.username || "";
   $("pStatus").value = me.status || "";
-  swatches("pHue", [12, 30, 48, 140, 172, 200, 225, 330, 0], pHue, (c) => {
-    pHue = c;
-    profAva();
-  });
+  $("pAbout").value = me.about || "";
+  $("pC1").value = me.c1 || "#2b2d31";
+  $("pC2").value = me.c2 || "#111214";
+  seg("pPres", pPres, (v) => { pPres = v; profAva(); });
   profAva();
   swatches("oAcc", ACC, look.acc, (c) => {
     look.acc = c;
@@ -425,7 +453,25 @@ $("setX").onclick = () => {
 $("setDlg").onclick = (e) => {
   if (e.target === $("setDlg")) $("setDlg").hidden = true;
 };
-$("pName").oninput = profAva;
+for (const id of ["pName", "pUser", "pStatus", "pAbout", "pC1", "pC2"]) $(id).addEventListener("input", profAva);
+$("pBan").onchange = async () => {
+  const f = $("pBan").files[0];
+  $("pBan").value = "";
+  if (!f) return;
+  try {
+    const bmp = await createImageBitmap(f).catch(() => new Promise((ok, no) => { const i = new Image(); i.onload = () => ok(i); i.onerror = no; i.src = URL.createObjectURL(f); }));
+    const w = bmp.width || bmp.naturalWidth, h = bmp.height || bmp.naturalHeight, c = document.createElement("canvas");
+    c.width = 600;
+    c.height = 240;
+    const k = Math.max(600 / w, 240 / h);
+    c.getContext("2d").drawImage(bmp, (600 - w * k) / 2, (240 - h * k) / 2, w * k, h * k);
+    for (let q = 0.85; q >= 0.3; q -= 0.1) { pBan = c.toDataURL("image/jpeg", q); if (pBan.length < 110000) break; }
+    profAva();
+  } catch {
+    toast("Это фото не открылось");
+  }
+};
+$("pNoBan").onclick = () => { pBan = null; profAva(); };
 $("pPic").onchange = async () => {
   const f = $("pPic").files[0];
   $("pPic").value = "";
@@ -452,7 +498,7 @@ $("pSave").onclick = async () => {
     toast("Ник не может быть пустым");
     return;
   }
-  const data = { name, status: $("pStatus").value.trim().slice(0, 70), photo: pPhoto || deleteField() };
+  const data = { name, status: $("pStatus").value.trim().slice(0, 70), about: $("pAbout").value.trim().slice(0, 190), photo: pPhoto || deleteField(), banner: pBan || deleteField(), c1: $("pC1").value, c2: $("pC2").value, presence: pPres };
   if (pHue != null) data.hue = pHue;
   const un = $("pUser").value.trim().toLowerCase().replace(/^@/, "");
   if (un && !/^[a-z0-9_]{4,24}$/.test(un)) { toast("Юзернейм: от 4 до 24 латинских букв, цифр и _"); return; }
@@ -561,7 +607,7 @@ function drawSky(svg, people, pts = SKY, edges = EDGES) {
   });
 }
 function renderSky() {
-  const people = [...users.values()].sort((a, b) => (a.joined && a.joined.toMillis() || 0) - (b.joined && b.joined.toMillis() || 0)).slice(0, 12).map((u) => ({ name: u.name, me: u.uid === me.uid, on: u.uid === me.uid || isOnline(u.seen), f: u.uid === me.uid ? null : () => openDm(u.uid) }));
+  const people = [...users.values()].sort((a, b) => (a.joined && a.joined.toMillis() || 0) - (b.joined && b.joined.toMillis() || 0)).slice(0, 12).map((u) => ({ name: u.name, me: u.uid === me.uid, on: u.uid === me.uid || onl(u), f: u.uid === me.uid ? null : () => openDm(u.uid) }));
   if (shape) {
     const slots = shape.map((_, i) => i).filter((i) => i % 2 === 0).concat(shape.map((_, i) => i).filter((i) => i % 2 === 1));
     const placed = [];
@@ -598,9 +644,9 @@ function renderChats() {
         const el = document.createElement("button");
         el.className = "ci";
         el.innerHTML = '<div class="ava"></div><div class="ciT"><b></b><small></small></div>';
-        avatar(el.querySelector(".ava"), u.name, u.uid, isOnline(u.seen));
+        avatar(el.querySelector(".ava"), u.name, u.uid, onl(u));
         el.querySelector("b").textContent = u.name;
-        el.querySelector("small").textContent = u.username ? "@" + u.username : isOnline(u.seen) ? "в сети" : "был(а) " + fmtDay(u.seen);
+        el.querySelector("small").textContent = u.username ? "@" + u.username : onl(u) ? "в сети" : "был(а) " + fmtDay(u.seen);
         el.onclick = () => { $("q").value = ""; openDm(u.uid); };
         box.appendChild(el);
       }
@@ -617,7 +663,7 @@ function renderChats() {
     el.innerHTML = '<div class="ava"></div><div class="ciT"><b></b><small></small></div><span class="ciM"></span><i></i>';
     const ava = el.querySelector(".ava");
     if (grp(c)) grpAva(ava, c);
-    else avatar(ava, chatTitle(c), other && other.uid, other && isOnline(other.seen));
+    else avatar(ava, chatTitle(c), other && other.uid, other && onl(other));
     el.querySelector(".ciM").innerHTML = (mutes.includes(c.id) ? ICON.mute : "") + (pins.includes(c.id) ? ICON.pin : "");
     const vs = voiceOf(c);
     if (vs.length) {
@@ -644,7 +690,7 @@ $("q").addEventListener("input", renderChats);
 $("q").addEventListener("keydown", (e) => { if (e.key === "Escape") { $("q").value = ""; renderChats(); } });
 function newDm() {
   const others = [...users.values()].filter((u) => u.uid !== me.uid);
-  sheet("Новый чат", others.length ? others.map((u) => ({ t: u.name, sub: (u.username ? "@" + u.username + " · " : "") + (isOnline(u.seen) ? "в сети" : "был(а) " + fmtDay(u.seen)), uid: u.uid, f: () => openDm(u.uid) })) : [{ t: "Пока ты тут один. Позови друзей и дай им код приглашения." }]);
+  sheet("Новый чат", others.length ? others.map((u) => ({ t: u.name, sub: (u.username ? "@" + u.username + " · " : "") + (onl(u) ? "в сети" : "был(а) " + fmtDay(u.seen)), uid: u.uid, f: () => openDm(u.uid) })) : [{ t: "Пока ты тут один. Позови друзей и дай им код приглашения." }]);
 }
 function newGroup() {
   const others = [...users.values()].filter((u) => u.uid !== me.uid);
@@ -656,7 +702,7 @@ function newGroup() {
     const l = document.createElement("label");
     l.innerHTML = '<input type="checkbox"><div class="ava"></div><div><b></b></div>';
     l.querySelector("input").value = u.uid;
-    avatar(l.querySelector(".ava"), u.name, u.uid, isOnline(u.seen));
+    avatar(l.querySelector(".ava"), u.name, u.uid, onl(u));
     l.querySelector("b").textContent = u.name;
     $("gPick").appendChild(l);
   }
@@ -747,14 +793,14 @@ function renderHead() {
   const ava = $("cAva");
   ava.className = "ava" + (grp(cur) ? " grp" : "");
   if (grp(cur)) grpAva(ava, cur);
-  else avatar(ava, chatTitle(cur), other && other.uid, other && isOnline(other.seen));
+  else avatar(ava, chatTitle(cur), other && other.uid, other && onl(other));
   const typing = Object.entries(cur.typing || {}).filter(([u, t]) => u !== me.uid && t && Date.now() - t.toMillis() < 6e3).map(([u]) => nameOf(u));
   $("cSub").classList.toggle("typing", typing.length > 0);
   const ty = $("tyB"), was = !ty.hidden;
   ty.hidden = !typing.length;
   $("tyWho").textContent = grp(cur) ? typing.join(", ") : "";
   if (typing.length && !was) { const b = $("msgs"); if (b.scrollHeight - b.scrollTop - b.clientHeight < 120) b.scrollTop = b.scrollHeight; }
-  $("cSub").textContent = typing.length ? grp(cur) ? typing.join(", ") + " печата" + (typing.length > 1 ? "ют…" : "ет…") : "печатает…" : grp(cur) ? cur.members.length + " участник" + (cur.members.length % 10 === 1 && cur.members.length % 100 !== 11 ? "" : cur.members.length % 10 >= 2 && cur.members.length % 10 <= 4 && (cur.members.length % 100 < 10 || cur.members.length % 100 >= 20) ? "а" : "ов") + ", в сети " + cur.members.filter((u) => u === me.uid || users.get(u) && isOnline(users.get(u).seen)).length : other ? (isOnline(other.seen) ? "в сети" : "был(а) " + fmtDay(other.seen)) + (other.status ? " · " + other.status : "") : "";
+  $("cSub").textContent = typing.length ? grp(cur) ? typing.join(", ") + " печата" + (typing.length > 1 ? "ют…" : "ет…") : "печатает…" : grp(cur) ? cur.members.length + " участник" + (cur.members.length % 10 === 1 && cur.members.length % 100 !== 11 ? "" : cur.members.length % 10 >= 2 && cur.members.length % 10 <= 4 && (cur.members.length % 100 < 10 || cur.members.length % 100 >= 20) ? "а" : "ов") + ", в сети " + cur.members.filter((u) => u === me.uid || users.get(u) && onl(users.get(u))).length : other ? (onl(other) ? "в сети" : "был(а) " + fmtDay(other.seen)) + (other.status ? " · " + other.status : "") : "";
 }
 setInterval(renderHead, 3e3);
 const REACTS = ["❤️", "😂", "👍", "🔥", "😮", "😢"];
@@ -1083,6 +1129,7 @@ addEventListener("pointermove", (e) => {
   if (rec && Math.abs(e.clientX - rec.x) > 90) recEnd(true);
 });
 function notify(m) {
+  if (me && me.presence === "dnd") return;
   if (sec.hideText) m = { uid: m.uid, text: "Новое сообщение" };
   if (window.velaApp && window.velaApp.notify) {
     window.velaApp.notify({ title: nameOf(m.uid), body: m.text });
@@ -1235,30 +1282,30 @@ function openProfile(target) {
   profOf = target;
   const body = $("prBody");
   body.textContent = "";
+  body.className = "";
   const top = el("div", "pTop"), ava = el("div", "ava big");
   top.append(ava);
   if (typeof target === "string") {
     const u = users.get(target) || { uid: target, name: "…" }, c = chats.get(dmId(me.uid, u.uid));
-    avatar(ava, u.name, u.uid, isOnline(u.seen));
-    top.append(el("h2", "", u.name), el("small", "pSub", u.uid === me.uid ? "это ты" : isOnline(u.seen) ? "в сети" : "был(а) " + fmtDay(u.seen)));
-    body.append(top);
+    const card = el("div", "pc");
+    profCard(card, u);
+    body.append(card);
+    body.classList.add("isUser");
     if (u.uid !== me.uid) {
       const acts = el("div", "pActs");
       acts.append(actBtn(ICON.chat, "Написать", () => { $("prof").hidden = true; openDm(u.uid); }), actBtn(ICON.phone, "Звонок", () => { $("prof").hidden = true; startCall(u.uid, false); }), actBtn(ICON.video, "Видео", () => { $("prof").hidden = true; startCall(u.uid, true); }));
       if (c) acts.append(actBtn(mutes.includes(c.id) ? ICON.mute : ICON.bell, mutes.includes(c.id) ? "Без звука" : "Звук", () => { mutes = toggleIn(mutes, "mutes", c.id); renderChats(); openProfile(target); }));
       body.append(acts);
     }
-    const info = el("div", "pInfo");
-    if (u.username) { const r = el("button", "pRow"); r.append(el("b", "", "@" + u.username), el("small", "", "юзернейм · нажми, чтобы скопировать")); r.onclick = () => navigator.clipboard.writeText("@" + u.username).then(() => toast("Скопировано")); info.append(r); }
-    if (u.status) { const r = el("div", "pRow"); r.append(el("b", "", u.status), el("small", "", "о себе")); info.append(r); }
-    if (info.childNodes.length) body.append(info);
+    const un = card.querySelector(".pcUser");
+    if (un) { un.title = "Скопировать"; un.onclick = () => navigator.clipboard.writeText("@" + u.username).then(() => toast("Скопировано")); }
   } else {
     const c = chats.get(target.id) || target, owner = c.owner === me.uid;
     grpAva(ava, c);
     ava.classList.add("big", "edit");
     ava.title = "Сменить фото группы";
     ava.onclick = () => $("grpPic").click();
-    top.append(el("h2", "", c.name), el("small", "pSub", c.members.length + " участн. · в сети " + c.members.filter((u) => u === me.uid || users.get(u) && isOnline(users.get(u).seen)).length));
+    top.append(el("h2", "", c.name), el("small", "pSub", c.members.length + " участн. · в сети " + c.members.filter((u) => u === me.uid || users.get(u) && onl(users.get(u))).length));
     if (c.about) top.append(el("p", "pAbout", c.about));
     body.append(top);
     const acts = el("div", "pActs");
@@ -1278,11 +1325,11 @@ function openProfile(target) {
     form.append(nm, ab, sv);
     body.append(form);
     body.append(el("p", "secT", "Участники"));
-    for (const uid of [...c.members].sort((a, b) => (b === c.owner) - (a === c.owner) || isOnline((users.get(b) || {}).seen) - isOnline((users.get(a) || {}).seen))) {
+    for (const uid of [...c.members].sort((a, b) => (b === c.owner) - (a === c.owner) || onl(users.get(b)) - onl(users.get(a)))) {
       const u = users.get(uid) || { uid, name: "…" }, r = el("div", "pMem"), a = el("div", "ava");
-      avatar(a, u.name, uid, isOnline(u.seen));
+      avatar(a, u.name, uid, onl(u));
       const t = el("div", "pMemT");
-      t.append(el("b", "", u.name + (uid === me.uid ? " (ты)" : "")), el("small", "", isOnline(u.seen) ? "в сети" : "был(а) " + fmtDay(u.seen)));
+      t.append(el("b", "", u.name + (uid === me.uid ? " (ты)" : "")), el("small", "", onl(u) ? "в сети" : "был(а) " + fmtDay(u.seen)));
       r.append(a, t);
       if (uid === c.owner) r.append(el("em", "", "владелец"));
       else if (owner) { const x = el("button", "icon pKick", "×"); x.title = "Удалить из группы"; x.onclick = (e) => { e.stopPropagation(); updateDoc(doc(db, "chats", c.id), { members: c.members.filter((m) => m !== uid) }).then(() => toast(u.name + " удалён(а)"), () => toast("Не получилось")); }; r.append(x); }
@@ -1418,7 +1465,7 @@ function ringStop() {
 const ICE = { iceServers: [{ urls: ["stun:stun.l.google.com:19302", "stun:stun1.l.google.com:19302", "stun:stun.cloudflare.com:3478"] }] };
 const canScreen = !Capacitor.isNativePlatform() && !!(navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia);
 let room = null, call = null;
-const voiceOf = (c) => Object.entries((c && c.voice) || {}).filter(([u, v]) => v && users.get(u) && (u === me.uid || isOnline(users.get(u).seen))).map(([u, v]) => ({ uid: u, ...v }));
+const voiceOf = (c) => Object.entries((c && c.voice) || {}).filter(([u, v]) => v && users.get(u) && (u === me.uid || onl(users.get(u)))).map(([u, v]) => ({ uid: u, ...v }));
 const setVoice = (cid, v) => updateDoc(doc(db, "chats", cid), { ["voice." + me.uid]: v }).catch(() => {});
 const myVoice = () => ({ t: serverTimestamp(), mic: room.mic, cam: !!room.local.getVideoTracks().length, scr: room.screen ? room.screen.id : "" });
 async function joinRoom(cid, video) {
@@ -1659,6 +1706,9 @@ function renderRoom() {
   $("rScr").hidden = !canScreen;
   room.scrOf = {};
   vs.forEach((v) => { if (v.scr) room.scrOf[v.scr] = v.uid; });
+  const sig = JSON.stringify([vs.map((v) => [v.uid, v.mic, v.scr, v.cam]), [...room.peers].map(([u, p]) => [u, p.pc.connectionState, [...p.streams.values()].map((s) => s.id + s.getTracks().map((t) => t.kind + t.readyState).join())]), room.focus, room.autoFocus, !!room.screen, room.local.getVideoTracks().length]);
+  if (sig === room.sig && $("rGrid").childElementCount) return;
+  room.sig = sig;
   const keep = new Set(), audio = $("rAudio"), grid = $("rGrid");
   grid.textContent = "";
   const screens = [];
@@ -1667,13 +1717,30 @@ function renderRoom() {
     if (s.getAudioTracks().length) { const a = mediaEl("a-" + s.id, s, "audio"); keep.add("a-" + s.id); if (a.parentNode !== audio) audio.append(a); }
     if (room.scrOf[s.id] === u && s.getVideoTracks().length) screens.push({ uid: u, key: "v-" + s.id, s });
   }));
+  if (room.focus && !screens.some((x) => x.key === room.focus)) room.focus = null;
+  if (!room.focus && room.autoFocus !== false) { const f = screens.find((x) => x.uid !== me.uid) || screens[0]; if (f) room.focus = f.key; }
+  const tiles = [];
+  let main = null;
   for (const sc of screens) {
     const t = el("div", "tile screen"), v = mediaEl(sc.key, sc.s, "video");
     keep.add(sc.key);
-    t.append(v, el("span", "tName", (sc.uid === me.uid ? "Твой экран" : "Экран: " + nameOf(sc.uid))));
-    t.onclick = () => t.classList.toggle("focus");
-    grid.append(t);
+    t.append(v, el("span", "tName", (sc.uid === me.uid ? "Твой стрим" : nameOf(sc.uid))), el("span", "live", "В ЭФИРЕ"));
     v.play().catch(() => {});
+    if (sc.key === room.focus) {
+      main = t;
+      t.classList.add("main");
+      const bar = el("div", "stBar");
+      const fs = el("button", "", "На весь экран");
+      fs.onclick = (e) => { e.stopPropagation(); (document.fullscreenElement ? document.exitFullscreen() : (t.requestFullscreen || t.webkitRequestFullscreen).call(t)).catch?.(() => {}); };
+      const x = el("button", "", "Свернуть стрим");
+      x.onclick = (e) => { e.stopPropagation(); room.focus = null; room.autoFocus = false; renderRoom(); };
+      bar.append(fs, x);
+      t.append(bar);
+      t.ondblclick = () => fs.click();
+    } else {
+      t.onclick = () => { room.focus = sc.key; room.autoFocus = true; renderRoom(); };
+      tiles.push(t);
+    }
   }
   for (const v of vs) {
     const t = el("div", "tile"), a = el("div", "ava big");
@@ -1687,9 +1754,20 @@ function renderRoom() {
     const p = room.peers.get(v.uid), st = p ? p.pc.connectionState : "";
     t.append(el("span", "tName", nameOf(v.uid) + (v.uid === me.uid ? " (ты)" : "") + (st && st !== "connected" ? " · " + (st === "failed" ? "нет связи" : "подключаю…") : "")));
     if (v.mic === false) { const m = el("i", "tMute"); m.innerHTML = ICON.mic; t.append(m); }
-    grid.append(t);
+    if (v.scr) {
+      t.append(el("span", "live", "В ЭФИРЕ"));
+      const key = v.uid === me.uid ? "scr-me" : "v-" + v.scr;
+      if (key !== room.focus && screens.some((x) => x.key === key)) { t.classList.add("canWatch"); t.onclick = () => { room.focus = key; room.autoFocus = true; renderRoom(); }; }
+    }
+    tiles.push(t);
   }
-  grid.dataset.n = grid.children.length;
+  grid.classList.toggle("stage", !!main);
+  if (main) {
+    const strip = el("div", "strip");
+    tiles.forEach((t) => strip.append(t));
+    grid.append(main, strip);
+  } else tiles.forEach((t) => grid.append(t));
+  grid.dataset.n = tiles.length;
   room.media.forEach((e, k) => { if (!keep.has(k) && k !== "cam-me" && k !== "scr-me") { e.remove(); room.media.delete(k); } });
 }
 $("rMic").onclick = $("vbMic").onclick = toggleMic;

@@ -2641,3 +2641,366 @@ body.tt-none .tmir {
   background: #e5484d;
   color: #fff;
 }
+@media (max-width: 760px) {
+  body.glass .app {
+    grid-template-columns: 1fr;
+  }
+  body.glass .sky svg {
+    max-height: 120px;
+  }
+  .sheet {
+    padding: 0;
+    align-items: end;
+  }
+  .sheetCard, .setCard, .profCard {
+    width: 100%;
+    max-height: 92dvh;
+    border-radius: 24px 24px 0 0;
+    padding: 18px 16px max(18px, env(safe-area-inset-bottom));
+  }
+  .setHead b {
+    font-size: 22px;
+  }
+  .seg2 button {
+    padding: 8px 6px;
+    font-size: 13px;
+  }
+  .sideTop {
+    padding-top: max(10px, env(safe-area-inset-top));
+  }
+  .ci {
+    padding: 8px 12px;
+  }
+  .chatTop .icon {
+    width: 38px;
+    height: 38px;
+  }
+  .cInfo b {
+    font-size: 17px;
+  }
+  .callBtns {
+    gap: 14px;
+  }
+  .callBtns button {
+    width: 56px;
+    height: 56px;
+  }
+  .pActs {
+    gap: 6px;
+  }
+}
+.sheetCard * {
+  min-width: 0;
+}
+.pc {
+  position: relative;
+  isolation: isolate;
+  border-radius: 20px;
+  overflow: hidden;
+  color: #fff;
+  margin-bottom: 12px;
+}
+.pcBan {
+  height: 110px;
+  background: linear-gradient(135deg, var(--c1), color-mix(in srgb, var(--c1) 50%, #fff 18%));
+  background-size: cover;
+  background-position: center;
+}
+.pcAva {
+  position: absolute;
+  top: 58px;
+  left: 16px;
+  padding: 6px;
+  border-radius: 50%;
+  background: var(--c1);
+}
+.pcAva .ava.big {
+  width: 88px;
+  height: 88px;
+  margin: 0;
+  font-size: 32px;
+  animation: none;
+}
+.pcAva .ava.big.on::after {
+  right: 2px;
+  bottom: 2px;
+  width: 20px;
+  height: 20px;
+  box-shadow: 0 0 0 5px var(--c1);
+}
+.pcBody {
+  margin: 48px 12px 12px;
+  padding: 14px;
+  border-radius: 14px;
+  background: rgba(0, 0, 0, .38);
+  backdrop-filter: blur(8px);
+}
+.pcBody h2 {
+  margin: 0;
+  font-size: 1.35em;
+  letter-spacing: -.02em;
+}
+.pcUser {
+  display: inline-block;
+  opacity: .75;
+  cursor: pointer;
+}
+.pcStat {
+  margin-top: 8px;
+  font-size: .88em;
+  opacity: .9;
+}
+.pcSec {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, .12);
+}
+.pcSec b {
+  display: block;
+  font-size: .72em;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  opacity: .7;
+}
+.pcSec p {
+  margin: 4px 0 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+#prBody.isUser .pc {
+  margin: -26px -20px 14px;
+  border-radius: 28px 28px 20px 20px;
+}
+.ava[data-p="on"]::after {
+  background: #23a55a !important;
+  border-radius: 50%;
+}
+.ava[data-p="idle"]::after {
+  background: radial-gradient(circle at 30% 30%, transparent 35%, #f0b232 36%) !important;
+  border-radius: 50%;
+}
+.ava[data-p="dnd"]::after {
+  background: linear-gradient(#f23f43, #f23f43) center / 100% 100%, #f23f43 !important;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 3px #f23f43, inset 0 0 0 9px rgba(255, 255, 255, .9);
+}
+.pBtns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.chip {
+  padding: 8px 12px;
+  border-radius: 99px;
+  background: var(--paper2);
+  color: var(--ink);
+  font-size: .85em;
+  cursor: pointer;
+}
+.pCols {
+  display: flex;
+  gap: 10px;
+}
+.col {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: 14px;
+  background: var(--paper2);
+  cursor: pointer;
+}
+.col input {
+  width: 30px;
+  height: 30px;
+  border: 0;
+  padding: 0;
+  border-radius: 50%;
+  background: none;
+  cursor: pointer;
+}
+.col input::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+.col input::-webkit-color-swatch {
+  border: 0;
+  border-radius: 50%;
+}
+.profF textarea {
+  padding: 11px 14px;
+  border-radius: 14px;
+  background: var(--paper2);
+  outline: 0;
+  resize: none;
+  font: inherit;
+  color: inherit;
+}
+.live {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: #f23f43;
+  color: #fff;
+  font-size: .68em;
+  font-weight: 800;
+  letter-spacing: .04em;
+}
+.tile.canWatch {
+  cursor: pointer;
+}
+.tile.canWatch::before {
+  content: "Смотреть стрим";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  background: rgba(0, 0, 0, .55);
+  font-weight: 700;
+  opacity: 0;
+  transition: opacity .2s;
+}
+.tile.canWatch:hover::before {
+  opacity: 1;
+}
+.rGrid.stage {
+  display: flex;
+  flex-direction: column;
+  align-content: stretch;
+  gap: 10px;
+}
+.tile.main {
+  flex: 1;
+  min-height: 0;
+  aspect-ratio: auto;
+  grid-column: auto;
+  cursor: default;
+}
+.tile.main:fullscreen {
+  border-radius: 0;
+}
+.stBar {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  display: flex;
+  gap: 6px;
+  opacity: 0;
+  transition: opacity .2s;
+}
+.tile.main:hover .stBar, .tile.main:active .stBar {
+  opacity: 1;
+}
+@media (hover: none) {
+  .stBar {
+    opacity: 1;
+  }
+}
+.stBar button {
+  padding: 7px 12px;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, .6);
+  color: #fff;
+  font-size: .8em;
+  backdrop-filter: blur(6px);
+}
+.strip {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  flex: none;
+  padding-bottom: 2px;
+}
+.strip .tile {
+  flex: none;
+  width: 150px;
+  aspect-ratio: 16 / 10;
+}
+.strip .tile .ava.big {
+  width: 54px;
+  height: 54px;
+  font-size: 20px;
+}
+.strip .tile.screen {
+  grid-column: auto;
+}
+.rGrid.stage {
+  padding-bottom: 104px;
+}
+body.mono .tile.talk, body.glass.mono .tile.talk {
+  box-shadow: 0 0 0 3px #fff, 0 0 26px rgba(255, 255, 255, .35);
+}
+body.glass.mono .room {
+  background: radial-gradient(circle at 20% 0%, #26272b, #07080c 65%);
+}
+body.glass.mono .ciV, body.glass.mono .vbInfo b {
+  color: #fff;
+}
+body.glass.mono .vbar {
+  background: rgba(255, 255, 255, .1);
+}
+body.glass.mono .live {
+  background: #fff;
+  color: #000;
+}
+body.glass.mono .pcBan, body.glass.mono .pc::before {
+  filter: grayscale(1);
+}
+body.glass.mono .upd {
+  background: #fff;
+  color: #0a0a0a;
+  box-shadow: none;
+}
+body.glass.mono .upd .updRing i {
+  background: conic-gradient(#0a0a0a calc(var(--p, 0) * 1%), rgba(0, 0, 0, .2) 0);
+}
+body.glass.mono .upd .updRing::after {
+  background: #0a0a0a;
+}
+body.glass.mono .call {
+  background: radial-gradient(circle at 30% 20%, #2a2b30, #07080c 70%);
+}
+body.glass.mono .file i, body.glass.mono .callM i {
+  background: #fff;
+  color: #0a0a0a;
+}
+body.glass.mono .m.mine .file i, body.glass.mono .m.mine .callM i {
+  background: rgba(0, 0, 0, .12);
+  color: #0a0a0a;
+}
+.uname input, .profF .uname input {
+  background: none;
+  padding: 11px 0;
+}
+.pc::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(180deg, var(--c1), var(--c2));
+}
+body.glass.mono .pcAva {
+  background: #2a2a2e;
+}
+body.glass.mono .pcAva .ava.big.on::after {
+  box-shadow: 0 0 0 5px #2a2a2e;
+}
+.strip .tile .tName {
+  left: 6px;
+  bottom: 6px;
+  padding: 2px 7px;
+  font-size: .7em;
+}
+.strip .tile .ava.big {
+  width: 44px;
+  height: 44px;
+  font-size: 17px;
+  margin-bottom: 14px;
+}
+.strip .tile .live {
+  top: 6px;
+  left: 6px;
+}

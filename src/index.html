@@ -90,17 +90,25 @@
     <div class="setHead"><b>Настройки</b><button class="icon" id="setX" aria-label="Закрыть">×</button></div>
 
     <h3>Профиль</h3>
-    <div class="prof">
-      <label class="bigAva" id="pAva" title="Сменить фото"><input type="file" id="pPic" accept="image/*" hidden><span></span></label>
-      <div class="profF">
-        <input id="pName" maxlength="24" placeholder="Ник">
-        <label class="uname"><span>@</span><input id="pUser" maxlength="24" placeholder="имя_пользователя" autocomplete="off" spellcheck="false"></label>
-        <input id="pStatus" maxlength="70" placeholder="О себе">
-        <button class="link" id="pNoPic">Убрать фото</button>
-      </div>
+    <div class="pc" id="pPrev"></div>
+    <div class="pBtns">
+      <label class="chip">Аватар<input type="file" id="pPic" accept="image/*" hidden></label>
+      <button class="chip" id="pNoPic">Убрать аватар</button>
+      <label class="chip">Баннер<input type="file" id="pBan" accept="image/*" hidden></label>
+      <button class="chip" id="pNoBan">Убрать баннер</button>
     </div>
-    <p class="lbl">Цвет флажка</p>
-    <div class="sw" id="pHue"></div>
+    <p class="lbl">Цвета профиля</p>
+    <div class="pCols"><label class="col"><input type="color" id="pC1"><span>Сверху</span></label><label class="col"><input type="color" id="pC2"><span>Снизу</span></label></div>
+    <div class="profF">
+      <input id="pName" maxlength="24" placeholder="Ник">
+      <label class="uname"><span>@</span><input id="pUser" maxlength="24" placeholder="имя_пользователя" autocomplete="off" spellcheck="false"></label>
+    </div>
+    <p class="lbl">Статус</p>
+    <div class="seg2 wrap" id="pPres"><button data-v="on">В сети</button><button data-v="idle">Не на месте</button><button data-v="dnd">Не беспокоить</button><button data-v="inv">Невидимка</button></div>
+    <div class="profF">
+      <input id="pStatus" maxlength="70" placeholder="Свой статус: чем занят">
+      <textarea id="pAbout" maxlength="190" rows="3" placeholder="Обо мне"></textarea>
+    </div>
     <button class="main" id="pSave">Сохранить профиль</button>
 
     <h3>Оформление</h3>
