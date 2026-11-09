@@ -1,4 +1,10 @@
 @font-face {
+  font-family: "Comic Neue Cyr";
+  font-weight: 100 900;
+  font-display: block;
+  src: url(fonts/ComicNeueCyr-Bold.otf) format("opentype");
+}
+@font-face {
   font-family: Inter;
   font-weight: 400;
   font-display: swap;
@@ -93,8 +99,8 @@
   --night2:#1D2029;
   --star:#F6F1E6;
   --bad:#D7263D;
-  --head:-apple-system,"SF Pro Display",Inter,system-ui,sans-serif;
-  --ui:-apple-system,"SF Pro Text",Inter,system-ui,sans-serif;
+  --head:"Comic Neue Cyr",-apple-system,Inter,system-ui,sans-serif;
+  --ui:"Comic Neue Cyr",-apple-system,Inter,system-ui,sans-serif;
   --ease:cubic-bezier(.23,1,.32,1);
 }
 * {
