@@ -7,7 +7,7 @@ const must = (ok, what) => {
 const mf = path.join(app, "src", "main", "AndroidManifest.xml");
 let m = fs.readFileSync(mf, "utf8");
 must(m.includes("</manifest>") && m.includes("@xml/file_paths"), "manifest");
-m = m.replace("</manifest>", ["RECORD_AUDIO", "MODIFY_AUDIO_SETTINGS", "POST_NOTIFICATIONS", "REQUEST_INSTALL_PACKAGES"].map((p) => `    <uses-permission android:name="android.permission.${p}" />`).join("\n") + "\n</manifest>");
+m = m.replace("</manifest>", ["RECORD_AUDIO", "MODIFY_AUDIO_SETTINGS", "POST_NOTIFICATIONS", "REQUEST_INSTALL_PACKAGES", "CAMERA"].map((p) => `    <uses-permission android:name="android.permission.${p}" />`).join("\n") + "\n</manifest>");
 fs.writeFileSync(mf, m);
 const java = path.join(app, "src", "main", "java", "com", "vegasdev", "vela");
 for (const f of ["MainActivity.java", "VelaUpdate.java"]) fs.copyFileSync(path.join(__dirname, "android", f), path.join(java, f));

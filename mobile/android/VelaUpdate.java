@@ -4,6 +4,7 @@ import android.content.Intent;
 import android.net.Uri;
 import android.os.Build;
 import android.provider.Settings;
+import android.util.Base64;
 import androidx.core.content.FileProvider;
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
@@ -18,6 +19,25 @@ import java.net.URL;
 
 @CapacitorPlugin(name = "VelaUpdate")
 public class VelaUpdate extends Plugin {
+    @PluginMethod
+    public void openFile(PluginCall call) {
+        String name = call.getString("name", "file").replaceAll("[\\\\/:*?\"<>|]", "_");
+        String type = call.getString("type", "application/octet-stream");
+        String data = call.getString("data", "");
+        try {
+            File dir = new File(getContext().getCacheDir(), "files");
+            dir.mkdirs();
+            File f = new File(dir, name);
+            try (FileOutputStream out = new FileOutputStream(f)) { out.write(Base64.decode(data, Base64.DEFAULT)); }
+            Uri u = FileProvider.getUriForFile(getContext(), getContext().getPackageName() + ".fileprovider", f);
+            Intent it = new Intent(Intent.ACTION_VIEW).setDataAndType(u, type).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            getActivity().startActivity(Intent.createChooser(it, name));
+            call.resolve();
+        } catch (Exception e) {
+            call.reject(e.getMessage() == null ? "error" : e.getMessage());
+        }
+    }
+
     @PluginMethod
     public void install(PluginCall call) {
         String url = call.getString("url");

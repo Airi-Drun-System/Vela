@@ -6,6 +6,7 @@ import {
   doc,
   getDoc,
   setDoc,
+  getDocs,
   updateDoc,
   deleteDoc,
   addDoc,
@@ -106,6 +107,8 @@ const toast = (t) => {
   }, 2600);
 };
 const nameOf = (uid) => (users.get(uid) || {}).name || "…";
+const prevOf = (m) => m.text || (m.img ? "Фото" : m.voice ? "Голосовое" : m.file ? "Файл: " + m.file.name : m.call ? (m.call.video ? "Видеозвонок" : "Звонок") : "");
+const sizeOf = (n) => n < 1024 ? n + " Б" : n < 1048576 ? (n / 1024).toFixed(0) + " КБ" : (n / 1048576).toFixed(1) + " МБ";
 const avatar = (el, name, uid, online) => {
   const u = users.get(uid) || {};
   el.textContent = u.photo ? "" : initials(name);
@@ -200,8 +203,10 @@ async function startApp(u) {
   }));
   unsub.push(onSnapshot(query(collection(db, "chats"), where("members", "array-contains", me.uid)), (qs) => {
     qs.docChanges().forEach((ch) => {
-      if (ch.type === "removed") chats.delete(ch.doc.id);
-      else chats.set(ch.doc.id, { id: ch.doc.id, ...ch.doc.data() });
+      if (ch.type === "removed") return chats.delete(ch.doc.id);
+      const c = { id: ch.doc.id, ...ch.doc.data() }, old = chats.get(c.id), l = c.last;
+      chats.set(c.id, c);
+      if (ch.type === "modified" && l && l.uid !== me.uid && l.ts && (!old || !old.last || !old.last.ts || l.ts.toMillis() > old.last.ts.toMillis()) && (document.hidden || !cur || cur.id !== c.id) && !mutes.includes(c.id)) notify({ uid: l.uid, text: (grp(c) ? c.name + ": " : "") + l.text });
     });
     renderChats();
     if (cur && chats.get(cur.id)) {
@@ -209,6 +214,7 @@ async function startApp(u) {
       renderHead();
     }
   }));
+  listenCalls();
   beat();
   setInterval(beat, 6e4);
   lock();
@@ -578,7 +584,7 @@ function renderChats() {
   if (!renderChats.done) { renderChats.done = 1; $("chats").classList.add("intro"); setTimeout(() => $("chats").classList.remove("intro"), 900); }
   renderSky();
   const q = $("q").value.trim().toLowerCase().replace(/^@/, "");
-  const list = [...chats.values()].sort((a, b) => (b.last && b.last.ts ? b.last.ts.toMillis() : 0) - (a.last && a.last.ts ? a.last.ts.toMillis() : 0))
+  const list = [...chats.values()].sort((a, b) => (pins.includes(b.id) - pins.includes(a.id)) || (b.last && b.last.ts ? b.last.ts.toMillis() : 0) - (a.last && a.last.ts ? a.last.ts.toMillis() : 0))
     .filter((c) => !q || chatTitle(c).toLowerCase().includes(q));
   const box = $("chats");
   box.textContent = "";
@@ -606,15 +612,19 @@ function renderChats() {
     const other = grp(c) ? null : users.get(c.members.find((m) => m !== me.uid));
     const el = document.createElement("button");
     el.className = "ci" + (cur && cur.id === c.id ? " sel" : "") + (unread(c) ? " new" : "");
-    el.innerHTML = '<div class="ava"></div><div class="ciT"><b></b><small></small></div><i></i>';
+    el.innerHTML = '<div class="ava"></div><div class="ciT"><b></b><small></small></div><span class="ciM"></span><i></i>';
     const ava = el.querySelector(".ava");
-    if (grp(c)) {
-      ava.classList.add("grp");
-      ava.innerHTML = '<svg viewBox="0 0 24 24"><path d="M9 11a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm8 0a3 3 0 1 1 0-6 3 3 0 0 1 0 6zM2 20c0-4 3-6 7-6s7 2 7 6zm15 0c0-2-.6-3.6-1.8-4.7C19 15.4 22 16.6 22 20z"/></svg>';
-    } else avatar(ava, chatTitle(c), other && other.uid, other && isOnline(other.seen));
+    if (grp(c)) grpAva(ava, c);
+    else avatar(ava, chatTitle(c), other && other.uid, other && isOnline(other.seen));
+    el.querySelector(".ciM").innerHTML = (mutes.includes(c.id) ? ICON.mute : "") + (pins.includes(c.id) ? ICON.pin : "");
+    el.oncontextmenu = (e) => { e.preventDefault(); chatMenu(c, el); };
+    let hold = 0;
+    el.addEventListener("touchstart", () => { hold = setTimeout(() => { hold = -1; chatMenu(c, el); }, 450); }, { passive: true });
+    el.addEventListener("touchend", (e) => { if (hold === -1) e.preventDefault(); clearTimeout(hold); });
+    el.addEventListener("touchmove", () => clearTimeout(hold), { passive: true });
     el.querySelector("b").textContent = chatTitle(c);
     const l = c.last;
-    el.querySelector("small").textContent = l ? (l.uid === me.uid ? "Ты: " : grp(c) ? nameOf(l.uid) + ": " : "") + l.text : "Пока пусто";
+    el.querySelector("small").textContent = l ? (l.uid === me.uid ? "Ты: " : grp(c) ? nameOf(l.uid) + ": " : "") + l.text : grp(c) ? "Группа создана" : "Пока пусто";
     el.onclick = () => openChat(c.id);
     box.appendChild(el);
   }
@@ -693,7 +703,6 @@ function listen() {
     msgs = qs.docs.map((d) => ({ id: d.id, ...d.data({ serverTimestamps: "estimate" }) })).reverse();
     renderMsgs(first);
     const last = msgs[msgs.length - 1];
-    if (!first && last && last.id !== before && last.uid !== me.uid && document.hidden) notify(last);
     first = false;
     markRead();
   });
@@ -705,7 +714,13 @@ $("back").onclick = () => {
   cur = null;
   renderChats();
 };
+let stick = true;
+const toBottom = () => { if (stick) $("msgs").scrollTop = $("msgs").scrollHeight; };
+new ResizeObserver(toBottom).observe($("msgs"));
+$("msgs").addEventListener("load", toBottom, true);
 $("msgs").addEventListener("scroll", () => {
+  const b = $("msgs");
+  stick = b.scrollHeight - b.scrollTop - b.clientHeight < 60;
   if ($("msgs").scrollTop < 40 && msgs.length >= msgLimit) {
     msgLimit += 60;
     keepScroll = $("msgs").scrollHeight;
@@ -717,11 +732,11 @@ function renderHead() {
   if (!cur) return;
   const other = grp(cur) ? null : users.get(cur.members.find((m) => m !== me.uid));
   $("cName").textContent = chatTitle(cur);
+  $("callBtn").hidden = $("vidBtn").hidden = grp(cur);
   const ava = $("cAva");
   ava.className = "ava" + (grp(cur) ? " grp" : "");
-  if (grp(cur)) {
-    ava.innerHTML = $("chats").querySelector(".grp") ? $("chats").querySelector(".grp").innerHTML : "";
-  } else avatar(ava, chatTitle(cur), other && other.uid, other && isOnline(other.seen));
+  if (grp(cur)) grpAva(ava, cur);
+  else avatar(ava, chatTitle(cur), other && other.uid, other && isOnline(other.seen));
   const typing = Object.entries(cur.typing || {}).filter(([u, t]) => u !== me.uid && t && Date.now() - t.toMillis() < 6e3).map(([u]) => nameOf(u));
   $("cSub").classList.toggle("typing", typing.length > 0);
   const ty = $("tyB"), was = !ty.hidden;
@@ -763,7 +778,10 @@ function renderMsgs(jump) {
     el.dataset.id = m.id;
     let html = "";
     if (!mine && grp(cur) && !cont) html += `<b class="who" style="--h:${hueOf(m.uid)}"></b>`;
+    if (m.fwd) html += '<small class="fwd"></small>';
     if (m.reply) html += '<div class="q"><b></b><span></span></div>';
+    if (m.file) html += '<button class="file"><i>' + ICON.file + '</i><span><b></b><small></small></span></button>';
+    if (m.call) html += '<div class="callM ' + (m.call.miss ? "miss" : "") + '"><i>' + (m.call.video ? ICON.video : ICON.phone) + '</i><span><b></b><small></small></span></div>';
     if (m.img) html += '<img class="pic" alt="Фото" loading="lazy">';
     if (m.voice) html += '<audio class="voice" controls preload="none"></audio>';
     if (m.text) html += '<div class="t"></div>';
@@ -784,6 +802,17 @@ function renderMsgs(jump) {
       };
     }
     if (m.voice) el.querySelector(".voice").src = m.voice;
+    if (m.fwd) el.querySelector(".fwd").textContent = "Переслано от " + nameOf(m.fwd);
+    if (m.file) {
+      el.querySelector(".file b").textContent = m.file.name;
+      el.querySelector(".file small").textContent = sizeOf(m.file.size);
+      el.querySelector(".file").onclick = (e) => openFile(m, e.currentTarget);
+    }
+    if (m.call) {
+      el.querySelector(".callM b").textContent = (m.call.miss ? (mine ? "Отменённый " : "Пропущенный ") : mine ? "Исходящий " : "Входящий ") + (m.call.video ? "видеозвонок" : "звонок");
+      el.querySelector(".callM small").textContent = m.call.miss ? "" : Math.floor(m.call.dur / 60) + ":" + String(m.call.dur % 60).padStart(2, "0");
+      el.querySelector(".callM").onclick = () => startCall(mine ? cur.members.find((u) => u !== me.uid) : m.uid, m.call.video);
+    }
     if (m.text) el.querySelector(".t").innerHTML = linkify(m.text);
     el.querySelector(".meta").textContent = (m.edited ? "изм. " : "") + fmtTime(m.ts) + (mine ? readBy(m) ? " ✓✓" : " ✓" : "");
     const re = Object.entries(m.re || {}).filter(([, u]) => u && u.length);
@@ -818,7 +847,10 @@ function renderMsgs(jump) {
   if (keepScroll) {
     box.scrollTop = box.scrollHeight - keepScroll;
     keepScroll = 0;
-  } else if (jump || atBottom) box.scrollTop = box.scrollHeight;
+  } else if (jump || atBottom) {
+    box.scrollTop = box.scrollHeight;
+    stick = true;
+  }
 }
 function jumpTo(id) {
   const el = $("msgs").querySelector(`[data-id="${id}"]`);
@@ -831,6 +863,7 @@ function jumpTo(id) {
 function msgMenu(m, el) {
   const mine = m.uid === me.uid;
   const items = [{ react: true, f: (e) => react(m, e) }, { t: "Ответить", f: () => setReply(m) }];
+  items.push({ t: "Переслать", f: () => forward(m) });
   if (m.text) items.push({ t: "Копировать", f: () => navigator.clipboard.writeText(m.text).then(() => toast("Скопировано")) });
   if (mine && m.text) items.push({ t: "Изменить", f: () => {
     editing = m;
@@ -853,7 +886,7 @@ function setReply(m) {
   $("replyBar").hidden = !m;
   if (m) {
     $("rbWho").textContent = nameOf(m.uid);
-    $("rbText").textContent = m.text || (m.img ? "Фото" : "Голосовое");
+    $("rbText").textContent = prevOf(m);
     $("txt").focus();
   }
 }
@@ -937,6 +970,12 @@ $("composer").onsubmit = (e) => {
   const t = txt.value.trim();
   if (t) send({ text: t });
 };
+async function post(cid, msg) {
+  msg = { uid: me.uid, text: "", ts: serverTimestamp(), ...msg };
+  await addDoc(collection(db, "chats", cid, "messages"), msg);
+  updateDoc(doc(db, "chats", cid), { last: { uid: me.uid, text: prevOf(msg).slice(0, 80), ts: serverTimestamp() }, ["reads." + me.uid]: serverTimestamp(), ["typing." + me.uid]: deleteField() }).catch(() => {
+  });
+}
 async function send(data) {
   if (!cur) return;
   if (editing) {
@@ -949,16 +988,13 @@ async function send(data) {
     return;
   }
   const msg = { uid: me.uid, text: "", ts: serverTimestamp(), ...data };
-  if (replyTo) msg.reply = { id: replyTo.id, uid: replyTo.uid, text: (replyTo.text || (replyTo.img ? "Фото" : "Голосовое")).slice(0, 120) };
+  if (replyTo) msg.reply = { id: replyTo.id, uid: replyTo.uid, text: prevOf(replyTo).slice(0, 120) };
   txt.value = "";
   grow();
   sendBtn();
   setReply(null);
   try {
-    await addDoc(collection(db, "chats", cur.id, "messages"), msg);
-    const preview = data.text ? data.text.slice(0, 80) : data.img ? "Фото" : "Голосовое";
-    updateDoc(doc(db, "chats", cur.id), { last: { uid: me.uid, text: preview, ts: serverTimestamp() }, ["reads." + me.uid]: serverTimestamp(), ["typing." + me.uid]: deleteField() }).catch(() => {
-    });
+    await post(cur.id, msg);
   } catch {
     toast("Не отправилось — проверь интернет");
     if (data.text) {
@@ -1038,10 +1074,10 @@ addEventListener("pointermove", (e) => {
 function notify(m) {
   if (sec.hideText) m = { uid: m.uid, text: "Новое сообщение" };
   if (window.velaApp && window.velaApp.notify) {
-    window.velaApp.notify({ title: nameOf(m.uid), body: m.text || (m.img ? "Фото" : "Голосовое") });
+    window.velaApp.notify({ title: nameOf(m.uid), body: m.text });
     return;
   }
-  if ("Notification" in window && Notification.permission === "granted") new Notification(nameOf(m.uid), { body: m.text || (m.img ? "Фото" : "Голосовое"), silent: false });
+  if ("Notification" in window && Notification.permission === "granted") new Notification(nameOf(m.uid), { body: m.text, silent: false });
 }
 function menu(items, anchor) {
   const box = $("menu");
@@ -1131,3 +1167,385 @@ authMode(false);
 if (Capacitor.isNativePlatform()) App.addListener("backButton", () => {
   if (!window.velaBack()) App.minimizeApp();
 });
+const ICON = {
+  pin: '<svg viewBox="0 0 24 24"><path d="M14 3l7 7-2 1-3-1-4 4 1 4-2 2-3.5-3.5L3 21l-.5-.5 4-4.5L3 12.5l2-2 4 1 4-4-1-3z"/></svg>',
+  mute: '<svg viewBox="0 0 24 24"><path d="M3 9h4l5-5v16l-5-5H3zm13.6 0L15 10.6l1.4 1.4-1.4 1.4 1.6 1.6 1.4-1.4 1.4 1.4 1.6-1.6-1.4-1.4 1.4-1.4L19.4 9 18 10.4z"/></svg>',
+  file: '<svg viewBox="0 0 24 24"><path d="M6 2h8l6 6v14H6zm7 1.5V9h5.5zM8 13h8v2H8zm0 4h8v2H8z"/></svg>',
+  phone: '<svg viewBox="0 0 24 24"><path d="M6.6 10.8a15.1 15.1 0 0 0 6.6 6.6l2.2-2.2a1 1 0 0 1 1-.25 11.4 11.4 0 0 0 3.6.57 1 1 0 0 1 1 1V20a1 1 0 0 1-1 1A17 17 0 0 1 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1c0 1.25.2 2.45.57 3.57a1 1 0 0 1-.25 1z"/></svg>',
+  video: '<svg viewBox="0 0 24 24"><path d="M3 6h12a1 1 0 0 1 1 1v3.5l5-3.5v10l-5-3.5V17a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1z"/></svg>',
+  chat: '<svg viewBox="0 0 24 24"><path d="M4 4h16v12H7l-3 3z"/></svg>',
+  bell: '<svg viewBox="0 0 24 24"><path d="M12 22a2 2 0 0 0 2-2h-4a2 2 0 0 0 2 2zm6-6V11a6 6 0 0 0-5-5.9V4h-2v1.1A6 6 0 0 0 6 11v5l-2 2v1h16v-1z"/></svg>',
+  add: '<svg viewBox="0 0 24 24"><path d="M15 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4zm-9-2V7H4v3H1v2h3v3h2v-3h3v-2zm9 4c-2.7 0-8 1.3-8 4v2h16v-2c0-2.7-5.3-4-8-4z"/></svg>',
+  out: '<svg viewBox="0 0 24 24"><path d="M10 17l1.4 1.4L17.8 12l-6.4-6.4L10 7l3.6 3.6H3v2.8h10.6zM20 3h-8v2h8v14h-8v2h8a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2z"/></svg>',
+  mic: '<svg viewBox="0 0 24 24"><path d="M12 3a3 3 0 0 1 3 3v6a3 3 0 0 1-6 0V6a3 3 0 0 1 3-3zm-7 9h2a5 5 0 0 0 10 0h2a7 7 0 0 1-6 6.9V21h-2v-2.1A7 7 0 0 1 5 12z"/></svg>',
+  end: '<svg viewBox="0 0 24 24"><path d="M12 9c-1.6 0-3.15.25-4.6.72v3.1a1 1 0 0 1-.56.9 11.5 11.5 0 0 0-2.66 1.85 1 1 0 0 1-1.41 0L.29 13.08a1 1 0 0 1 0-1.41C3.34 8.78 7.46 7 12 7s8.66 1.78 11.71 4.67a1 1 0 0 1 0 1.41l-2.48 2.49a1 1 0 0 1-1.41 0 11.3 11.3 0 0 0-2.67-1.85 1 1 0 0 1-.56-.9v-3.1A15 15 0 0 0 12 9z"/></svg>'
+};
+let pins = LS("pins", []), mutes = LS("mutes", []);
+const toggleIn = (arr, k, id) => { const a = arr.includes(id) ? arr.filter((x) => x !== id) : [...arr, id]; setLS(k, a); return a; };
+function grpAva(el, c) {
+  el.className = "ava grp" + (c.photo ? " pic" : "");
+  el.style.backgroundImage = c.photo ? `url("${c.photo}")` : "";
+  el.innerHTML = c.photo ? "" : '<svg viewBox="0 0 24 24"><path d="M9 11a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm8 0a3 3 0 1 1 0-6 3 3 0 0 1 0 6zM2 20c0-4 3-6 7-6s7 2 7 6zm15 0c0-2-.6-3.6-1.8-4.7C19 15.4 22 16.6 22 20z"/></svg>';
+}
+function chatMenu(c, el) {
+  menu([
+    { t: pins.includes(c.id) ? "Открепить" : "Закрепить", f: () => { pins = toggleIn(pins, "pins", c.id); renderChats(); } },
+    { t: mutes.includes(c.id) ? "Включить звук" : "Без звука", f: () => { mutes = toggleIn(mutes, "mutes", c.id); renderChats(); } },
+    { t: grp(c) ? "О группе" : "Профиль", f: () => openProfile(c) }
+  ], el);
+}
+function forward(m) {
+  const list = [...chats.values()];
+  sheet("Переслать в…", list.map((c) => ({ t: chatTitle(c), f: async () => {
+    const data = { fwd: m.fwd || m.uid };
+    for (const k of ["text", "img", "voice", "file"]) if (m[k]) data[k] = m[k];
+    try {
+      await post(c.id, data);
+      toast("Переслано: " + chatTitle(c));
+    } catch {
+      toast("Не переслалось");
+    }
+  } })));
+}
+async function cropPhoto(f) {
+  const bmp = await createImageBitmap(f).catch(() => new Promise((ok, no) => { const i = new Image(); i.onload = () => ok(i); i.onerror = no; i.src = URL.createObjectURL(f); }));
+  const w = bmp.width || bmp.naturalWidth, h = bmp.height || bmp.naturalHeight, m = Math.min(w, h), c = document.createElement("canvas");
+  c.width = c.height = 192;
+  c.getContext("2d").drawImage(bmp, (w - m) / 2, (h - m) / 2, m, m, 0, 0, 192, 192);
+  let url = "";
+  for (let q = 0.85; q >= 0.3; q -= 0.15) { url = c.toDataURL("image/jpeg", q); if (url.length < 70000) break; }
+  return url;
+}
+const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+const actBtn = (icon, label, f, bad) => { const b = el("button", "pAct" + (bad ? " bad" : "")); b.innerHTML = icon; b.append(el("span", "", label)); b.onclick = f; return b; };
+let profOf = null;
+function openProfile(target) {
+  profOf = target;
+  const body = $("prBody");
+  body.textContent = "";
+  const top = el("div", "pTop"), ava = el("div", "ava big");
+  top.append(ava);
+  if (typeof target === "string") {
+    const u = users.get(target) || { uid: target, name: "…" }, c = chats.get(dmId(me.uid, u.uid));
+    avatar(ava, u.name, u.uid, isOnline(u.seen));
+    top.append(el("h2", "", u.name), el("small", "pSub", u.uid === me.uid ? "это ты" : isOnline(u.seen) ? "в сети" : "был(а) " + fmtDay(u.seen)));
+    body.append(top);
+    if (u.uid !== me.uid) {
+      const acts = el("div", "pActs");
+      acts.append(actBtn(ICON.chat, "Написать", () => { $("prof").hidden = true; openDm(u.uid); }), actBtn(ICON.phone, "Звонок", () => { $("prof").hidden = true; startCall(u.uid, false); }), actBtn(ICON.video, "Видео", () => { $("prof").hidden = true; startCall(u.uid, true); }));
+      if (c) acts.append(actBtn(mutes.includes(c.id) ? ICON.mute : ICON.bell, mutes.includes(c.id) ? "Без звука" : "Звук", () => { mutes = toggleIn(mutes, "mutes", c.id); renderChats(); openProfile(target); }));
+      body.append(acts);
+    }
+    const info = el("div", "pInfo");
+    if (u.username) { const r = el("button", "pRow"); r.append(el("b", "", "@" + u.username), el("small", "", "юзернейм · нажми, чтобы скопировать")); r.onclick = () => navigator.clipboard.writeText("@" + u.username).then(() => toast("Скопировано")); info.append(r); }
+    if (u.status) { const r = el("div", "pRow"); r.append(el("b", "", u.status), el("small", "", "о себе")); info.append(r); }
+    if (info.childNodes.length) body.append(info);
+  } else {
+    const c = chats.get(target.id) || target, owner = c.owner === me.uid;
+    grpAva(ava, c);
+    ava.classList.add("big", "edit");
+    ava.title = "Сменить фото группы";
+    ava.onclick = () => $("grpPic").click();
+    top.append(el("h2", "", c.name), el("small", "pSub", c.members.length + " участн. · в сети " + c.members.filter((u) => u === me.uid || users.get(u) && isOnline(users.get(u).seen)).length));
+    if (c.about) top.append(el("p", "pAbout", c.about));
+    body.append(top);
+    const acts = el("div", "pActs");
+    acts.append(actBtn(mutes.includes(c.id) ? ICON.mute : ICON.bell, mutes.includes(c.id) ? "Без звука" : "Звук", () => { mutes = toggleIn(mutes, "mutes", c.id); renderChats(); openProfile(c); }));
+    if (owner) acts.append(actBtn(ICON.add, "Добавить", () => addMembers(c)));
+    acts.append(actBtn(ICON.out, "Выйти", () => leaveGroup(c), true));
+    body.append(acts);
+    const form = el("div", "pEdit");
+    const nm = el("input", "gname"); nm.maxLength = 40; nm.value = c.name; nm.placeholder = "Название";
+    const ab = el("textarea", "gname"); ab.maxLength = 200; ab.rows = 2; ab.value = c.about || ""; ab.placeholder = "Описание группы";
+    const sv = el("button", "main", "Сохранить");
+    sv.onclick = () => {
+      const name = nm.value.trim();
+      if (!name) return toast("Название пустое");
+      updateDoc(doc(db, "chats", c.id), { name, about: ab.value.trim() }).then(() => toast("Сохранено"), (e) => toast("Не сохранилось: " + (e.code || e.message)));
+    };
+    form.append(nm, ab, sv);
+    body.append(form);
+    body.append(el("p", "secT", "Участники"));
+    for (const uid of [...c.members].sort((a, b) => (b === c.owner) - (a === c.owner) || isOnline((users.get(b) || {}).seen) - isOnline((users.get(a) || {}).seen))) {
+      const u = users.get(uid) || { uid, name: "…" }, r = el("div", "pMem"), a = el("div", "ava");
+      avatar(a, u.name, uid, isOnline(u.seen));
+      const t = el("div", "pMemT");
+      t.append(el("b", "", u.name + (uid === me.uid ? " (ты)" : "")), el("small", "", isOnline(u.seen) ? "в сети" : "был(а) " + fmtDay(u.seen)));
+      r.append(a, t);
+      if (uid === c.owner) r.append(el("em", "", "владелец"));
+      else if (owner) { const x = el("button", "icon pKick", "×"); x.title = "Удалить из группы"; x.onclick = (e) => { e.stopPropagation(); updateDoc(doc(db, "chats", c.id), { members: c.members.filter((m) => m !== uid) }).then(() => toast(u.name + " удалён(а)"), () => toast("Не получилось")); }; r.append(x); }
+      if (uid !== me.uid) r.onclick = () => openProfile(uid);
+      body.append(r);
+    }
+  }
+  $("prof").hidden = false;
+}
+$("prX").onclick = () => { $("prof").hidden = true; profOf = null; };
+$("prof").onclick = (e) => { if (e.target === $("prof")) $("prX").click(); };
+$("cAva").onclick = $("cName").onclick = () => cur && openProfile(grp(cur) ? cur : cur.members.find((u) => u !== me.uid) || me.uid);
+$("grpPic").onchange = async () => {
+  const f = $("grpPic").files[0];
+  $("grpPic").value = "";
+  if (!f || !profOf || typeof profOf === "string") return;
+  try {
+    await updateDoc(doc(db, "chats", profOf.id), { photo: await cropPhoto(f) });
+    toast("Фото группы обновлено");
+  } catch (e) {
+    toast("Не сохранилось: " + (e.code || e.message));
+  }
+};
+function addMembers(c) {
+  const others = [...users.values()].filter((u) => !c.members.includes(u.uid));
+  if (!others.length) return toast("Все уже в группе");
+  sheet("Добавить в группу", others.map((u) => ({ t: u.name, uid: u.uid, sub: u.username ? "@" + u.username : "", f: () => updateDoc(doc(db, "chats", c.id), { members: [...c.members, u.uid] }).then(() => toast(u.name + " в группе"), () => toast("Не получилось")) })));
+}
+function leaveGroup(c) {
+  menu([{ t: "Точно выйти из «" + c.name + "»?", f: () => {} }, { t: "Выйти", bad: true, f: async () => {
+    const rest = c.members.filter((m) => m !== me.uid), data = { members: rest };
+    if (c.owner === me.uid && rest.length) data.owner = rest[0];
+    try {
+      await updateDoc(doc(db, "chats", c.id), data);
+      $("prof").hidden = true;
+      chats.delete(c.id);
+      if (cur && cur.id === c.id) $("back").click();
+      renderChats();
+    } catch {
+      toast("Не получилось выйти");
+    }
+  } }], document.querySelector(".pAct.bad"));
+}
+setInterval(() => { if (!$("prof").hidden && profOf) openProfile(typeof profOf === "string" ? profOf : chats.get(profOf.id) || profOf); }, 3e4);
+
+const PART = 7e5;
+$("file").onchange = async () => {
+  const fs = [...$("file").files];
+  $("file").value = "";
+  for (const f of fs) await sendFile(f);
+};
+async function sendFile(f) {
+  if (!cur) return;
+  if (f.size > 20 * 1048576) return toast("«" + f.name + "» больше 20 МБ, не влезет");
+  const cid = cur.id, bar = $("upBar");
+  try {
+    const b64 = await new Promise((ok, no) => { const r = new FileReader(); r.onload = () => ok(String(r.result).split(",")[1] || ""); r.onerror = no; r.readAsDataURL(f); });
+    const n = Math.max(1, Math.ceil(b64.length / PART)), ref = doc(collection(db, "chats", cid, "files"));
+    const meta = { name: f.name.slice(0, 120), size: f.size, type: (f.type || "").slice(0, 100) };
+    bar.hidden = false;
+    $("upName").textContent = meta.name;
+    await setDoc(ref, { uid: me.uid, ...meta, n, ts: serverTimestamp() });
+    for (let i = 0; i < n; i++) {
+      $("upFill").style.width = Math.round(i / n * 100) + "%";
+      await setDoc(doc(ref, "parts", String(i).padStart(3, "0")), { d: b64.slice(i * PART, (i + 1) * PART) });
+    }
+    $("upFill").style.width = "100%";
+    await post(cid, { file: { id: ref.id, ...meta } });
+  } catch (e) {
+    toast("Файл не отправился: " + (e.code || e.message));
+  } finally {
+    bar.hidden = true;
+  }
+}
+async function openFile(m, btn) {
+  if (btn.classList.contains("busy")) return;
+  btn.classList.add("busy");
+  try {
+    const qs = await getDocs(collection(db, "chats", cur.id, "files", m.file.id, "parts"));
+    const b64 = qs.docs.sort((a, b) => a.id.localeCompare(b.id)).map((d) => d.data().d).join("");
+    if (Capacitor.isNativePlatform()) {
+      await VelaUpdate.openFile({ name: m.file.name, type: m.file.type || "application/octet-stream", data: b64 });
+    } else {
+      const bin = atob(b64), u8 = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+      const a = el("a");
+      a.href = URL.createObjectURL(new Blob([u8], { type: m.file.type || "application/octet-stream" }));
+      a.download = m.file.name;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 6e4);
+    }
+  } catch (e) {
+    toast("Не открылся: " + (e.code || e.message));
+  } finally {
+    btn.classList.remove("busy");
+  }
+}
+$("composer").addEventListener("dragover", (e) => e.preventDefault());
+$("chat").addEventListener("drop", (e) => { e.preventDefault(); [...e.dataTransfer.files].reduce((p, f) => p.then(() => sendFile(f)), Promise.resolve()); });
+$("chat").addEventListener("dragover", (e) => e.preventDefault());
+
+const ICE = { iceServers: [{ urls: ["stun:stun.l.google.com:19302", "stun:stun1.l.google.com:19302", "stun:stun.cloudflare.com:3478"] }] };
+let call = null;
+const ring = { ctx: null, t: 0 };
+function ringStart(out) {
+  ringStop();
+  try {
+    ring.ctx = new AudioContext();
+    const beep = () => {
+      const t = ring.ctx.currentTime;
+      for (const [f, d] of out ? [[425, 0]] : [[660, 0], [880, .18], [660, .36], [880, .54]]) {
+        const o = ring.ctx.createOscillator(), g = ring.ctx.createGain();
+        o.frequency.value = f;
+        o.type = "sine";
+        g.gain.setValueAtTime(0, t + d);
+        g.gain.linearRampToValueAtTime(out ? .08 : .14, t + d + .02);
+        g.gain.setValueAtTime(out ? .08 : .14, t + d + (out ? 1 : .15));
+        g.gain.linearRampToValueAtTime(0, t + d + (out ? 1.05 : .17));
+        o.connect(g).connect(ring.ctx.destination);
+        o.start(t + d);
+        o.stop(t + d + 1.1);
+      }
+    };
+    beep();
+    ring.t = setInterval(beep, out ? 4e3 : 2e3);
+  } catch {}
+  if (!out && navigator.vibrate) navigator.vibrate([400, 300, 400, 300, 400]);
+}
+function ringStop() {
+  clearInterval(ring.t);
+  if (ring.ctx) ring.ctx.close().catch(() => {});
+  ring.ctx = null;
+  if (navigator.vibrate) navigator.vibrate(0);
+}
+function callUI() {
+  const box = $("call");
+  if (!call) { box.hidden = true; return; }
+  const u = users.get(call.peer) || { name: "…" };
+  box.hidden = false;
+  box.className = "call" + (call.video ? " vid" : "") + (call.remoteVid ? " rv" : "") + (call.state === "live" ? " live" : "") + (call.out ? "" : " inc");
+  avatar($("callAva"), u.name, call.peer, false);
+  $("callName").textContent = u.name;
+  $("callSt").textContent = call.state === "live" ? (call.t0 ? Math.floor((Date.now() - call.t0) / 6e4) + ":" + String(Math.floor((Date.now() - call.t0) / 1e3) % 60).padStart(2, "0") : "Соединяю…") : call.out ? (call.video ? "Видеозвонок…" : "Звоню…") : call.video ? "Входящий видеозвонок" : "Входящий звонок";
+  $("cOk").hidden = call.out || call.state === "live";
+  $("cMute").classList.toggle("off", !!call.muted);
+  $("cCam").classList.toggle("off", !!call.camOff);
+  $("cCam").hidden = !call.video;
+}
+async function media(video) {
+  try {
+    return await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true }, video: video ? { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } } : false });
+  } catch {
+    toast(video ? "Нет доступа к камере или микрофону" : "Нет доступа к микрофону");
+    return null;
+  }
+}
+function peer(side) {
+  const pc = new RTCPeerConnection(ICE);
+  call.local.getTracks().forEach((t) => pc.addTrack(t, call.local));
+  pc.ontrack = (e) => {
+    $("cRemote").srcObject = e.streams[0];
+    call.remoteVid = e.streams[0].getVideoTracks().length > 0;
+    callUI();
+  };
+  pc.onicecandidate = (e) => { if (e.candidate) addDoc(collection(call.ref, side), e.candidate.toJSON()).catch(() => {}); };
+  pc.onconnectionstatechange = () => {
+    if (pc.connectionState === "connected" && !call.t0) { call.t0 = Date.now(); callUI(); }
+    if (pc.connectionState === "failed") { toast("Связь не установилась — сеть не пускает звонок"); hangup(); }
+  };
+  $("cLocal").srcObject = call.video ? call.local : null;
+  return pc;
+}
+function watchCall(otherSide) {
+  call.unsub.push(onSnapshot(collection(call.ref, otherSide), (qs) => qs.docChanges().forEach((ch) => { if (ch.type === "added") call.pc.addIceCandidate(new RTCIceCandidate(ch.doc.data())).catch(() => {}); })));
+  call.unsub.push(onSnapshot(call.ref, async (s) => {
+    const d = s.data();
+    if (!d || !call) return;
+    if (call.out && d.answer && !call.pc.currentRemoteDescription) await call.pc.setRemoteDescription(d.answer).catch(() => {});
+    if (d.state === "live" && call.state !== "live") { call.state = "live"; ringStop(); callUI(); }
+    if (["end", "decline", "cancel", "miss", "busy"].includes(d.state)) {
+      if (d.state === "decline") toast("Звонок отклонён");
+      if (d.state === "busy") toast("Занято");
+      finish(d.state);
+    }
+  }));
+}
+async function startCall(uid, video) {
+  if (call) return toast("Ты уже в звонке");
+  if (!uid || uid === me.uid) return;
+  const local = await media(video);
+  if (!local) return;
+  call = { peer: uid, video, out: true, state: "ring", local, unsub: [], ref: doc(collection(db, "calls")) };
+  call.pc = peer("a");
+  callUI();
+  ringStart(true);
+  try {
+    const offer = await call.pc.createOffer();
+    await setDoc(call.ref, { from: me.uid, to: uid, video, state: "ring", offer: { type: offer.type, sdp: offer.sdp }, ts: serverTimestamp() });
+    await call.pc.setLocalDescription(offer);
+    watchCall("b");
+    call.timer = setTimeout(() => { if (call && call.state === "ring") { updateDoc(call.ref, { state: "miss" }).catch(() => {}); finish("miss"); } }, 45e3);
+  } catch (e) {
+    toast("Не получилось позвонить: " + (e.code || e.message));
+    finish("cancel");
+  }
+}
+function incoming(s) {
+  const d = s.data();
+  if (call) { updateDoc(s.ref, { state: "busy" }).catch(() => {}); return; }
+  if (!d.ts || Date.now() - d.ts.toMillis() > 45e3) return;
+  call = { id: s.id, ref: s.ref, peer: d.from, video: !!d.video, out: false, state: "ring", offer: d.offer, unsub: [] };
+  call.unsub.push(onSnapshot(s.ref, (x) => { const v = x.data(); if (call && call.state === "ring" && v && v.state !== "ring") finish(v.state); }));
+  callUI();
+  ringStart(false);
+  if (document.hidden) notify({ uid: d.from, text: d.video ? "Входящий видеозвонок" : "Входящий звонок" });
+}
+async function accept() {
+  if (!call || call.out || call.local) return;
+  ringStop();
+  call.unsub.splice(0).forEach((f) => f());
+  const local = await media(call.video);
+  if (!local) return decline();
+  call.local = local;
+  call.pc = peer("b");
+  try {
+    await call.pc.setRemoteDescription(call.offer);
+    const ans = await call.pc.createAnswer();
+    await call.pc.setLocalDescription(ans);
+    await updateDoc(call.ref, { answer: { type: ans.type, sdp: ans.sdp }, state: "live" });
+    call.state = "live";
+    watchCall("a");
+    callUI();
+  } catch (e) {
+    toast("Не получилось ответить: " + (e.code || e.message));
+    hangup();
+  }
+}
+function decline() {
+  if (!call) return;
+  updateDoc(call.ref, { state: "decline" }).catch(() => {});
+  finish("decline");
+}
+function hangup() {
+  if (!call) return;
+  if (!call.out && call.state === "ring") return decline();
+  updateDoc(call.ref, { state: call.state === "live" ? "end" : "cancel" }).catch(() => {});
+  finish(call.state === "live" ? "end" : "cancel");
+}
+function finish(why) {
+  if (!call) return;
+  const c = call;
+  call = null;
+  clearTimeout(c.timer);
+  ringStop();
+  c.unsub.forEach((f) => f());
+  if (c.pc) c.pc.close();
+  if (c.local) c.local.getTracks().forEach((t) => t.stop());
+  $("cRemote").srcObject = null;
+  $("cLocal").srcObject = null;
+  callUI();
+  if (c.out) {
+    const cid = dmId(me.uid, c.peer), dur = c.t0 ? Math.round((Date.now() - c.t0) / 1e3) : 0;
+    const go = () => post(cid, { call: { video: c.video, dur, miss: !c.t0 } }).catch(() => {});
+    if (chats.has(cid)) go();
+    else setDoc(doc(db, "chats", cid), { public: false, members: [me.uid, c.peer].sort(), created: serverTimestamp() }, { merge: true }).then(go, () => {});
+  }
+}
+setInterval(() => { if (call && call.state === "live") callUI(); }, 1e3);
+$("cOk").onclick = accept;
+$("cEnd").onclick = hangup;
+$("cMute").onclick = () => { if (!call || !call.local) return; call.muted = !call.muted; call.local.getAudioTracks().forEach((t) => (t.enabled = !call.muted)); callUI(); };
+$("cCam").onclick = () => { if (!call || !call.local) return; call.camOff = !call.camOff; call.local.getVideoTracks().forEach((t) => (t.enabled = !call.camOff)); callUI(); };
+$("callBtn").onclick = () => cur && !grp(cur) && startCall(cur.members.find((u) => u !== me.uid), false);
+$("vidBtn").onclick = () => cur && !grp(cur) && startCall(cur.members.find((u) => u !== me.uid), true);
+function listenCalls() {
+  unsub.push(onSnapshot(query(collection(db, "calls"), where("to", "==", me.uid), where("state", "==", "ring")), (qs) => qs.docChanges().forEach((ch) => { if (ch.type === "added") incoming(ch.doc); }), () => {}));
+}
+window.addEventListener("beforeunload", () => { if (call) hangup(); });

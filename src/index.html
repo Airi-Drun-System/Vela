@@ -42,11 +42,15 @@
       <button class="icon back" id="back" aria-label="Назад к чатам"><svg viewBox="0 0 24 24"><path d="M15.4 5.4 14 4l-8 8 8 8 1.4-1.4L8.8 12z"/></svg></button>
       <div class="ava" id="cAva"></div>
       <div class="cInfo"><b id="cName"></b><small id="cSub"></small></div>
+      <button class="icon" id="callBtn" title="Звонок" aria-label="Звонок"><svg viewBox="0 0 24 24"><path d="M6.6 10.8a15.1 15.1 0 0 0 6.6 6.6l2.2-2.2a1 1 0 0 1 1-.25 11.4 11.4 0 0 0 3.6.57 1 1 0 0 1 1 1V20a1 1 0 0 1-1 1A17 17 0 0 1 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1c0 1.25.2 2.45.57 3.57a1 1 0 0 1-.25 1z"/></svg></button>
+      <button class="icon" id="vidBtn" title="Видеозвонок" aria-label="Видеозвонок"><svg viewBox="0 0 24 24"><path d="M3 6h12a1 1 0 0 1 1 1v3.5l5-3.5v10l-5-3.5V17a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1z"/></svg></button>
     </header>
+    <div class="upBar" id="upBar" hidden><span id="upName"></span><i><b id="upFill"></b></i></div>
     <div class="msgs" id="msgs"></div>
     <div class="tyB" id="tyB" hidden><span class="dots"><i></i><i></i><i></i></span><em id="tyWho"></em></div>
     <div class="replyBar" id="replyBar" hidden><div><b id="rbWho"></b><span id="rbText"></span></div><button class="icon" id="rbX" aria-label="Отменить">×</button></div>
     <form class="composer" id="composer">
+      <label class="icon" title="Файл" aria-label="Отправить файл"><input type="file" id="file" multiple hidden><svg viewBox="0 0 24 24"><path d="M16.5 6v11.5a4 4 0 0 1-8 0V5a2.5 2.5 0 0 1 5 0v10.5a1 1 0 0 1-2 0V6H10v9.5a2.5 2.5 0 0 0 5 0V5a4 4 0 0 0-8 0v12.5a5.5 5.5 0 0 0 11 0V6z"/></svg></label>
       <label class="icon" title="Фото" aria-label="Отправить фото"><input type="file" id="pic" accept="image/*" hidden><svg viewBox="0 0 24 24"><path d="M4 5h16v14H4zm2 2v8l4-4 3 3 2-2 3 3V7zm9 1.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3z"/></svg></label>
       <div class="tw"><div class="tmir" id="tmir" aria-hidden="true"></div><textarea id="txt" rows="1" placeholder="Сообщение" maxlength="4000"></textarea></div>
       <button type="button" class="icon mic" id="mic" title="Удерживай, чтобы записать голосовое" aria-label="Голосовое"><svg viewBox="0 0 24 24"><path d="M12 3a3 3 0 0 1 3 3v6a3 3 0 0 1-6 0V6a3 3 0 0 1 3-3zm-7 9h2a5 5 0 0 0 10 0h2a7 7 0 0 1-6 6.9V21h-2v-2.1A7 7 0 0 1 5 12z"/></svg></button>
@@ -56,6 +60,18 @@
   </section>
   <div class="empty" id="emptyChat"><b>Vela</b><p>Выбери чат или звезду слева</p></div>
 </main>
+<div class="sheet" id="prof" hidden><div class="sheetCard profCard"><button class="icon pX" id="prX" aria-label="Закрыть">×</button><div id="prBody"></div><input type="file" id="grpPic" accept="image/*" hidden></div></div>
+<div class="call" id="call" hidden>
+  <video id="cRemote" autoplay playsinline></video>
+  <video id="cLocal" autoplay playsinline muted></video>
+  <div class="callInfo"><div class="ava big" id="callAva"></div><b id="callName"></b><small id="callSt"></small></div>
+  <div class="callBtns">
+    <button id="cMute" aria-label="Микрофон"><svg viewBox="0 0 24 24"><path d="M12 3a3 3 0 0 1 3 3v6a3 3 0 0 1-6 0V6a3 3 0 0 1 3-3zm-7 9h2a5 5 0 0 0 10 0h2a7 7 0 0 1-6 6.9V21h-2v-2.1A7 7 0 0 1 5 12z"/></svg></button>
+    <button id="cCam" aria-label="Камера"><svg viewBox="0 0 24 24"><path d="M3 6h12a1 1 0 0 1 1 1v3.5l5-3.5v10l-5-3.5V17a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1z"/></svg></button>
+    <button id="cEnd" class="end" aria-label="Завершить"><svg viewBox="0 0 24 24"><path d="M12 9c-1.6 0-3.15.25-4.6.72v3.1a1 1 0 0 1-.56.9 11.5 11.5 0 0 0-2.66 1.85 1 1 0 0 1-1.41 0L.29 13.08a1 1 0 0 1 0-1.41C3.34 8.78 7.46 7 12 7s8.66 1.78 11.71 4.67a1 1 0 0 1 0 1.41l-2.48 2.49a1 1 0 0 1-1.41 0 11.3 11.3 0 0 0-2.67-1.85 1 1 0 0 1-.56-.9v-3.1A15 15 0 0 0 12 9z"/></svg></button>
+    <button id="cOk" class="ok" aria-label="Ответить"><svg viewBox="0 0 24 24"><path d="M6.6 10.8a15.1 15.1 0 0 0 6.6 6.6l2.2-2.2a1 1 0 0 1 1-.25 11.4 11.4 0 0 0 3.6.57 1 1 0 0 1 1 1V20a1 1 0 0 1-1 1A17 17 0 0 1 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1c0 1.25.2 2.45.57 3.57a1 1 0 0 1-.25 1z"/></svg></button>
+  </div>
+</div>
 <div class="sheet" id="setDlg" hidden>
   <div class="sheetCard setCard">
     <div class="setHead"><b>Настройки</b><button class="icon" id="setX" aria-label="Закрыть">×</button></div>
