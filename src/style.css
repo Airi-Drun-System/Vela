@@ -1583,12 +1583,6 @@ body.glass.mono .m.mine .bub {
 body.glass.mono .m.mine .meta {
   color: rgba(0, 0, 0, .5);
 }
-body.glass.mono .ava,
-body.glass.mono .ava.grp,
-body.glass.mono .bigAva {
-  background-color: #3A3A3F;
-  filter: grayscale(1);
-}
 body.glass.mono .ava.grp {
   background: #F2F2F2;
   color: #0A0A0A;
@@ -2456,7 +2450,10 @@ body.tt-none .tmir {
   display: none;
 }
 .ciV.me svg {
-  animation: dPulse 1.6s ease-in-out infinite;
+  animation: vBlink 1.6s ease-in-out infinite;
+}
+@keyframes vBlink {
+  50% { opacity: .35; }
 }
 .vbar {
   display: flex;
@@ -2934,7 +2931,7 @@ body.tt-none .tmir {
   grid-column: auto;
 }
 .rGrid.stage {
-  padding-bottom: 104px;
+  padding-bottom: 124px;
 }
 body.mono .tile.talk, body.glass.mono .tile.talk {
   box-shadow: 0 0 0 3px #fff, 0 0 26px rgba(255, 255, 255, .35);
@@ -2951,9 +2948,6 @@ body.glass.mono .vbar {
 body.glass.mono .live {
   background: #fff;
   color: #000;
-}
-body.glass.mono .pcBan, body.glass.mono .pc::before {
-  filter: grayscale(1);
 }
 body.glass.mono .upd {
   background: #fff;
@@ -2988,12 +2982,6 @@ body.glass.mono .m.mine .file i, body.glass.mono .m.mine .callM i {
   z-index: -1;
   background: linear-gradient(180deg, var(--c1), var(--c2));
 }
-body.glass.mono .pcAva {
-  background: #2a2a2e;
-}
-body.glass.mono .pcAva .ava.big.on::after {
-  box-shadow: 0 0 0 5px #2a2a2e;
-}
 .strip .tile .tName {
   left: 6px;
   bottom: 6px;
@@ -3009,4 +2997,112 @@ body.glass.mono .pcAva .ava.big.on::after {
 .strip .tile .live {
   top: 6px;
   left: 6px;
+}
+.side:has(.vbar:not([hidden])) .fab {
+  bottom: 92px;
+}
+.ciV {
+  gap: 4px;
+  font-weight: 600;
+}
+.ciV svg {
+  flex: none;
+  width: 13px;
+  height: 13px;
+}
+.ciV span {
+  margin-right: 2px;
+}
+.ciV .ava {
+  width: 20px;
+  height: 20px;
+  font-size: 9px;
+  border-radius: 50%;
+  background-size: cover;
+  background-position: center;
+}
+.tile.screen {
+  background: transparent;
+}
+.tile.main {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.vw {
+  position: relative;
+  display: block;
+  line-height: 0;
+  max-width: 100%;
+  max-height: 100%;
+}
+.tile.main .vw video {
+  position: static;
+  display: block;
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: calc(100dvh - 360px);
+  border-radius: 18px;
+  background: #000;
+}
+.tile.main:fullscreen {
+  background: #000;
+}
+.tile.main:fullscreen .vw video {
+  max-height: 100vh;
+  border-radius: 0;
+}
+.strip .tile.screen .vw, .rGrid:not(.stage) .tile.screen .vw {
+  position: absolute;
+  inset: 0;
+}
+.strip .tile.screen .vw video, .rGrid:not(.stage) .tile.screen .vw video {
+  border-radius: inherit;
+}
+.strip .tile {
+  width: 220px;
+}
+.strip .tile .ava.big {
+  width: 64px;
+  height: 64px;
+  font-size: 24px;
+}
+.strip {
+  justify-content: center;
+}
+@media (max-width: 760px) {
+  .strip .tile {
+    width: 46vw;
+  }
+  .strip {
+    justify-content: flex-start;
+  }
+}
+body.pc .sideTop, body.pc .chatTop, body.pc .rTop, body.pc .empty, body.pc .authCard {
+  -webkit-app-region: drag;
+}
+body.pc .sideTop *, body.pc .chatTop *, body.pc .rTop *, body.pc .authCard * {
+  -webkit-app-region: no-drag;
+}
+body.pc .chatTop, body.pc .rTop {
+  padding-right: 150px;
+}
+body.pc::after {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 140px;
+  height: 10px;
+  z-index: 60;
+  -webkit-app-region: drag;
+}
+@media (max-width: 760px) {
+  body.pc .sideTop {
+    padding-right: 150px;
+  }
+}
+.vw > span, .vw .stBar {
+  line-height: 1.3;
 }

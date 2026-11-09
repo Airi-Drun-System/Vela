@@ -10,10 +10,12 @@ function createWindow() {
     height: 760,
     minWidth: 380,
     minHeight: 500,
-    backgroundColor: "#EDE8DF",
+    backgroundColor: "#0b0c10",
     title: "Vela",
     icon: path.join(__dirname, "build", "icon.png"),
     autoHideMenuBar: true,
+    titleBarStyle: "hidden",
+    titleBarOverlay: { color: "#00000000", symbolColor: "#d8d8de", height: 36 },
     webPreferences: { contextIsolation: true, nodeIntegration: false, sandbox: true, preload: path.join(__dirname, "preload.js"), additionalArguments: ["--vela-v=" + app.getVersion()] }
   });
   win.loadFile(path.join(__dirname, "src", "index.html"));

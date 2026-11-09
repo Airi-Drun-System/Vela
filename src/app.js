@@ -78,6 +78,7 @@ $("upd").onclick = async () => {
   showUpd();
 };
 if (window.velaPC) {
+  document.body.classList.add("pc");
   myVer = window.velaPC.version;
   window.velaPC.onUpdate((o) => { if (o.s === "err") o.s = upd.s === "chk" ? "" : upd.s === "load" ? "fail" : upd.s; Object.assign(upd, o); showUpd(); });
 } else if (Capacitor.isNativePlatform()) {
@@ -669,7 +670,7 @@ function renderChats() {
     if (vs.length) {
       const v = document.createElement("div");
       v.className = "ciV" + (room && room.cid === c.id ? " me" : "");
-      v.innerHTML = ICON.head;
+      v.innerHTML = ICON.head + "<span>В голосовом</span>";
       for (const x of vs.slice(0, 5)) { const a = document.createElement("div"); a.className = "ava"; avatar(a, nameOf(x.uid), x.uid, false); v.append(a); }
       v.append(vs.length > 5 ? "+" + (vs.length - 5) : "");
       el.querySelector(".ciT").append(v);
@@ -1722,9 +1723,10 @@ function renderRoom() {
   const tiles = [];
   let main = null;
   for (const sc of screens) {
-    const t = el("div", "tile screen"), v = mediaEl(sc.key, sc.s, "video");
+    const t = el("div", "tile screen"), v = mediaEl(sc.key, sc.s, "video"), w = el("div", "vw");
     keep.add(sc.key);
-    t.append(v, el("span", "tName", (sc.uid === me.uid ? "Твой стрим" : nameOf(sc.uid))), el("span", "live", "В ЭФИРЕ"));
+    w.append(v, el("span", "tName", (sc.uid === me.uid ? "Твой стрим" : nameOf(sc.uid))), el("span", "live", "В ЭФИРЕ"));
+    t.append(w);
     v.play().catch(() => {});
     if (sc.key === room.focus) {
       main = t;
@@ -1735,7 +1737,7 @@ function renderRoom() {
       const x = el("button", "", "Свернуть стрим");
       x.onclick = (e) => { e.stopPropagation(); room.focus = null; room.autoFocus = false; renderRoom(); };
       bar.append(fs, x);
-      t.append(bar);
+      w.append(bar);
       t.ondblclick = () => fs.click();
     } else {
       t.onclick = () => { room.focus = sc.key; room.autoFocus = true; renderRoom(); };
