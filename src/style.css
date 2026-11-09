@@ -3142,3 +3142,27 @@ body.pc .rTop {
 body.pc .rTop * {
   -webkit-app-region: no-drag;
 }
+body.glass.mono {
+  --g-bg: rgba(22, 22, 23, .62);
+  --night: #111111;
+  --night2: #1b1b1c;
+  --paper2: rgba(255, 255, 255, .07);
+  background: #050505;
+}
+html:has(body.glass.mono) {
+  background: #050505;
+}
+body.glass.mono .room {
+  background: #0c0c0d;
+}
+body.glass.mono .tile {
+  background: #1e1e20;
+}
+body.glass.mono .rBtns button:not(.end):not(.on):not(.off) {
+  background: #262628;
+}
+@media (max-width: 760px) {
+  body.glass.mono .side, body.glass.mono .chat {
+    background: rgba(14, 14, 15, .7);
+  }
+}
