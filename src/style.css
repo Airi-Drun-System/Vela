@@ -1815,32 +1815,6 @@ body.ma-none .m.in .bub, body.calm .m.in .bub { animation: none; }
   position: relative;
   overflow: visible;
 }
-.tt-glow .composer.key {
-  animation: kGlow .45s ease-out;
-}
-@keyframes kGlow {
-  from { box-shadow: 0 0 0 3px color-mix(in srgb, var(--sig) 45%, transparent), 0 0 26px color-mix(in srgb, var(--sig) 40%, transparent); }
-}
-.tt-lift .composer.key textarea {
-  animation: kLift .22s ease-out;
-}
-@keyframes kLift {
-  40% { transform: translateY(-2px) scale(1.01); }
-}
-.ink {
-  position: absolute;
-  bottom: 50%;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: hsl(var(--h) 80% 60%);
-  pointer-events: none;
-  animation: kInk .7s ease-out forwards;
-}
-@keyframes kInk {
-  from { transform: translate(-50%, 50%) scale(.4); opacity: .9; }
-  to { transform: translate(-50%, -34px) scale(2.2); opacity: 0; filter: blur(3px); }
-}
 #send:not([hidden]), #mic:not([hidden]) {
   animation: kSwap .3s cubic-bezier(.2, 1.4, .4, 1);
 }
@@ -1867,4 +1841,77 @@ body.ma-none .m.in .bub, body.calm .m.in .bub { animation: none; }
 body.calm #chats .ci, body.calm .reacts button, body.calm .tyB { animation: none; }
 @media (prefers-reduced-motion: reduce) {
   .m.in .bub, .ci, .tyB, .dots i, .dots, .reacts button { animation: none !important; }
+}
+.tw {
+  position: relative;
+  flex: 1;
+  display: flex;
+  min-width: 0;
+}
+.tw textarea {
+  flex: 1;
+  scrollbar-width: none;
+}
+.tw textarea::-webkit-scrollbar {
+  display: none;
+}
+.tmir {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-wrap: break-word;
+  padding: 10px 6px;
+  line-height: 1.35;
+  font: inherit;
+  font-size: 16px;
+  color: var(--ink);
+}
+body:not(.tt-none) .tw textarea {
+  color: transparent;
+  caret-color: var(--sig);
+}
+body.tt-none .tmir {
+  display: none;
+}
+.nc {
+  position: relative;
+  animation: .6s cubic-bezier(.2, 1.2, .4, 1) both;
+}
+.tt-glow .nc { animation-name: tGlow; }
+.tt-lift .nc { animation-name: tLift; }
+.tt-drop .nc { animation-name: tDrop; }
+.tt-ink .nc { animation-name: tInk; animation-timing-function: ease-out; }
+.tt-slide .nc { animation-name: tSlide; }
+.tt-rainbow .nc { animation-name: tRain; animation-timing-function: ease-out; }
+@keyframes tGlow {
+  from { opacity: 0; color: #fff; text-shadow: 0 0 2px #fff, 0 0 10px var(--sig), 0 0 22px var(--sig); }
+  40% { opacity: 1; color: var(--sig); text-shadow: 0 0 8px var(--sig); }
+}
+@keyframes tLift {
+  from { opacity: 0; top: .7em; }
+  45% { opacity: 1; top: -.28em; color: var(--sig); }
+  70% { top: .06em; }
+}
+@keyframes tDrop {
+  from { opacity: 0; top: -1em; }
+  55% { opacity: 1; top: .1em; }
+  75% { top: -.08em; }
+}
+@keyframes tInk {
+  from { opacity: 0; filter: blur(6px); color: var(--sig); }
+  50% { opacity: 1; filter: blur(1px); }
+}
+@keyframes tSlide {
+  from { opacity: 0; left: .8em; }
+  60% { opacity: 1; left: -.06em; }
+}
+@keyframes tRain {
+  from { opacity: 0; top: .3em; color: hsl(var(--h) 90% 62%); text-shadow: 0 0 10px hsl(var(--h) 90% 62%); }
+  35% { opacity: 1; top: 0; color: hsl(var(--h) 90% 62%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .nc { animation: none !important; }
 }

@@ -817,7 +817,36 @@ const grow = () => {
   txt.style.height = "auto";
   txt.style.height = Math.min(txt.scrollHeight, 160) + "px";
 };
+const mir = $("tmir"), MS = 600;
+let mirText = [], mirAt = [];
+function syncMir() {
+  const now = performance.now(), next = Array.from(txt.value);
+  let a = 0;
+  while (a < next.length && a < mirText.length && next[a] === mirText[a]) a++;
+  let b = 0;
+  while (b < next.length - a && b < mirText.length - a && next[next.length - 1 - b] === mirText[mirText.length - 1 - b]) b++;
+  const born = next.length - a - b > 40 ? 0 : now;
+  mirAt = [...mirAt.slice(0, a), ...next.slice(a, next.length - b).map(() => born), ...mirAt.slice(mirAt.length - b)];
+  mirText = next;
+  mir.textContent = "";
+  let plain = "";
+  next.forEach((ch, i) => {
+    const age = now - mirAt[i];
+    if (age >= MS || ch === "\n") { plain += ch; return; }
+    if (plain) { mir.append(plain); plain = ""; }
+    const s = document.createElement("span");
+    s.className = "nc";
+    s.textContent = ch;
+    s.style.animationDelay = -age + "ms";
+    s.style.setProperty("--h", (i * 37) % 360);
+    mir.append(s);
+  });
+  mir.append(plain + "\u200b");
+  mir.scrollTop = txt.scrollTop;
+}
+txt.addEventListener("scroll", () => { mir.scrollTop = txt.scrollTop; });
 const sendBtn = () => {
+  syncMir();
   const has = !!txt.value.trim();
   $("send").hidden = !has;
   $("mic").hidden = has;
@@ -826,20 +855,7 @@ let typingAt = 0;
 txt.addEventListener("input", (e) => {
   grow();
   sendBtn();
-  if (e.inputType && e.inputType.startsWith("insert")) {
-    const c = $("composer");
-    c.classList.remove("key");
-    void c.offsetWidth;
-    c.classList.add("key");
-    if (look.type === "ink") {
-      const d = document.createElement("b");
-      d.className = "ink";
-      d.style.left = Math.min(92, 8 + txt.value.length % 60 * 1.4) + "%";
-      d.style.setProperty("--h", Math.random() * 360 | 0);
-      c.appendChild(d);
-      setTimeout(() => d.remove(), 700);
-    }
-  }
+
   if (cur && Date.now() - typingAt > 3e3) {
     typingAt = Date.now();
     updateDoc(doc(db, "chats", cur.id), { ["typing." + me.uid]: serverTimestamp() }).catch(() => {

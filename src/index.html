@@ -47,7 +47,7 @@
     <div class="replyBar" id="replyBar" hidden><div><b id="rbWho"></b><span id="rbText"></span></div><button class="icon" id="rbX" aria-label="Отменить">×</button></div>
     <form class="composer" id="composer">
       <label class="icon" title="Фото" aria-label="Отправить фото"><input type="file" id="pic" accept="image/*" hidden><svg viewBox="0 0 24 24"><path d="M4 5h16v14H4zm2 2v8l4-4 3 3 2-2 3 3V7zm9 1.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3z"/></svg></label>
-      <textarea id="txt" rows="1" placeholder="Сообщение" maxlength="4000"></textarea>
+      <div class="tw"><div class="tmir" id="tmir" aria-hidden="true"></div><textarea id="txt" rows="1" placeholder="Сообщение" maxlength="4000"></textarea></div>
       <button type="button" class="icon mic" id="mic" title="Удерживай, чтобы записать голосовое" aria-label="Голосовое"><svg viewBox="0 0 24 24"><path d="M12 3a3 3 0 0 1 3 3v6a3 3 0 0 1-6 0V6a3 3 0 0 1 3-3zm-7 9h2a5 5 0 0 0 10 0h2a7 7 0 0 1-6 6.9V21h-2v-2.1A7 7 0 0 1 5 12z"/></svg></button>
       <button class="icon send" id="send" aria-label="Отправить" hidden><svg viewBox="0 0 24 24"><path d="M3 20.5 21 12 3 3.5 5.5 12zM5.5 12H13"/></svg></button>
     </form>
@@ -86,8 +86,8 @@
     <div class="seg2 wrap" id="oAnim"><button data-v="spring">Пружина</button><button data-v="tail">Из хвоста</button><button data-v="drop">Падение</button><button data-v="blur">Дымка</button><button data-v="flip">Переворот</button><button data-v="pop">Хлопок</button><button data-v="none">Без</button></div>
     <p class="lbl">Кто-то печатает</p>
     <div class="seg2 wrap" id="oDots"><button data-v="wave">Волна</button><button data-v="bounce">Прыжки</button><button data-v="pulse">Пульс</button><button data-v="orbit">Орбита</button><button data-v="pen">Перо</button></div>
-    <p class="lbl">Свой текст при наборе</p>
-    <div class="seg2 wrap" id="oType"><button data-v="glow">Свечение</button><button data-v="lift">Подскок</button><button data-v="ink">Чернила</button><button data-v="none">Без</button></div>
+    <p class="lbl">Анимация букв при наборе</p>
+    <div class="seg2 wrap" id="oType"><button data-v="glow">Вспышка</button><button data-v="lift">Подскок</button><button data-v="drop">Падение</button><button data-v="ink">Дымка</button><button data-v="slide">Выезд</button><button data-v="rainbow">Радуга</button><button data-v="none">Без</button></div>
     <label class="tog"><input type="checkbox" id="oStars"> Звёздная пыль и анимации</label>
 
     <h3>Защита</h3>
