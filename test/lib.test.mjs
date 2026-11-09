@@ -1,0 +1,17 @@
+import assert from "node:assert";
+import { dmId, isOnline, fmtDay, initials, hueOf, linkify } from "../src/lib.js";
+assert.strictEqual(dmId("b", "a"), "a_b");
+assert.strictEqual(dmId("a", "b"), dmId("b", "a"));
+assert.ok(isOnline(Date.now() - 1e3));
+assert.ok(!isOnline(Date.now() - 3e5));
+assert.ok(!isOnline(null));
+const now = new Date(2026, 10, 9, 12);
+assert.strictEqual(fmtDay(new Date(2026, 10, 9, 8).getTime(), true, now), "Сегодня");
+assert.strictEqual(fmtDay(new Date(2026, 10, 8, 8).getTime(), true, now), "Вчера");
+assert.strictEqual(fmtDay(new Date(2026, 10, 3, 8).getTime(), true, now), "3 ноября");
+assert.strictEqual(initials("vegas dev"), "VD");
+assert.strictEqual(initials(""), "?");
+assert.strictEqual(hueOf("x"), hueOf("x"));
+assert.strictEqual(linkify("<b>hi</b> https://x.ru/a"), '&lt;b&gt;hi&lt;/b&gt; <a href="https://x.ru/a" target="_blank" rel="noopener">https://x.ru/a</a>');
+assert.ok(!linkify('"><img src=x onerror=alert(1)>').includes("<img"));
+console.log("lib: ok");

@@ -1,0 +1,72 @@
+{
+  "name": "vela",
+  "productName": "Vela",
+  "version": "0.1.0",
+  "description": "Vela",
+  "author": "VegasDev",
+  "main": "main.js",
+  "scripts": {
+    "build": "esbuild src/app.js --bundle --minify --format=iife --target=chrome110 --outfile=src/bundle.js",
+    "test": "node test/lib.test.mjs && esbuild test/shape.test.mjs --bundle --platform=node --format=esm --outfile=dist/shape.test.mjs --log-level=warning && node dist/shape.test.mjs",
+    "start": "npm run build && electron ."
+  },
+  "dependencies": {
+    "electron-updater": "^6.3.9"
+  },
+  "devDependencies": {
+    "@capacitor/android": "^6.2.3",
+    "@capacitor/app": "^6.0.3",
+    "@capacitor/cli": "^6.2.3",
+    "@capacitor/core": "^6.2.3",
+    "@capacitor/local-notifications": "^6.1.3",
+    "@fontsource/inter": "^5.3.0",
+    "@fontsource/onest": "^5.3.1",
+    "@fontsource/unbounded": "^5.3.0",
+    "electron": "^33.2.1",
+    "electron-builder": "^25.1.8",
+    "esbuild": "^0.24.0",
+    "firebase": "^10.14.1",
+    "i18n-iso-countries": "^7.14.0",
+    "topojson-client": "^3.1.0",
+    "world-atlas": "^2.0.2"
+  },
+  "build": {
+    "appId": "com.vegasdev.vela",
+    "productName": "Vela",
+    "icon": "build/icon.png",
+    "copyright": "© 2026 VegasDev",
+    "files": [
+      "main.js",
+      "src/**",
+      "!src/app.js",
+      "!src/lib.js",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        "nsis"
+      ]
+    },
+    "nsis": {
+      "artifactName": "Vela-${version}-setup.exe",
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "installerLanguages": [
+        "ru_RU"
+      ],
+      "language": "1049",
+      "createDesktopShortcut": true,
+      "shortcutName": "Vela",
+      "runAfterFinish": true,
+      "perMachine": false
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "Airi-Drun-System",
+        "repo": "Vela",
+        "releaseType": "release"
+      }
+    ]
+  }
+}

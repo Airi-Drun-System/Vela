@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+<meta name="theme-color" content="#07080D">
+<title>Vela</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27%3E%3Crect width=%27100%27 height=%27100%27 rx=%2723%27 fill=%27%2310121B%27/%3E%3Cpath d=%27M30 74C40 56 46 36 52 18L53 74Z%27 fill=%27%23fff%27 fill-opacity=%27.6%27/%3E%3Cpath d=%27M57 30C64 44 70 58 74 74H57Z%27 fill=%27%23fff%27 fill-opacity=%27.4%27/%3E%3C/svg%3E">
+<link rel="stylesheet" href="style.css">
+</head>
+<body class="glass">
+<section id="auth" class="auth" hidden>
+  <div class="authCard">
+    <svg class="authSky" id="authSky" viewBox="0 0 320 140" aria-hidden="true"></svg>
+    <h1 class="word">Vela</h1>
+    <div class="seg" role="tablist"><button id="tabIn" class="on">Войти</button><button id="tabUp">Я новенький</button></div>
+    <form id="authForm" autocomplete="on">
+      <input id="aName" placeholder="Ник" maxlength="24" autocomplete="nickname" hidden>
+      <input id="aMail" type="email" placeholder="Почта" required autocomplete="email">
+      <input id="aPass" type="password" placeholder="Пароль (от 6 символов)" required minlength="6" autocomplete="current-password">
+      <input id="aCode" placeholder="Код приглашения" autocomplete="off" hidden>
+      <button class="main" id="aGo">Войти</button>
+      <p class="err" id="aErr"></p>
+    </form>
+  </div>
+</section>
+<main id="app" class="app" hidden>
+  <aside class="side" id="side">
+    <header class="sideTop">
+      <div class="me" id="me"></div>
+      <button class="icon" id="setBtn" title="Настройки" aria-label="Настройки"><svg viewBox="0 0 24 24"><path d="M19.4 13a7.5 7.5 0 0 0 0-2l2.1-1.6-2-3.5-2.5 1a7.6 7.6 0 0 0-1.7-1L15 3h-4l-.4 2.9a7.6 7.6 0 0 0-1.7 1l-2.5-1-2 3.5L6.6 11a7.5 7.5 0 0 0 0 2l-2.1 1.6 2 3.5 2.5-1c.5.4 1.1.7 1.7 1L11 21h4l.4-2.9c.6-.3 1.2-.6 1.7-1l2.5 1 2-3.5zM13 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z" transform="translate(-1 0)"/></svg></button>
+      <button class="icon" id="newDm" title="Новый личный чат" aria-label="Новый личный чат"><svg viewBox="0 0 24 24"><path d="M11 5h2v6h6v2h-6v6h-2v-6H5v-2h6z"/></svg></button>
+    </header>
+    <div class="sky"><svg id="sky" viewBox="0 0 320 140" role="group" aria-label="Кто в сети"></svg><p id="skyNote"></p></div>
+    <div class="chats" id="chats"></div>
+  </aside>
+
+  <section class="chat" id="chat" hidden>
+    <header class="chatTop">
+      <button class="icon back" id="back" aria-label="Назад к чатам"><svg viewBox="0 0 24 24"><path d="M15.4 5.4 14 4l-8 8 8 8 1.4-1.4L8.8 12z"/></svg></button>
+      <div class="ava" id="cAva"></div>
+      <div class="cInfo"><b id="cName"></b><small id="cSub"></small></div>
+    </header>
+    <div class="msgs" id="msgs"></div>
+    <div class="replyBar" id="replyBar" hidden><div><b id="rbWho"></b><span id="rbText"></span></div><button class="icon" id="rbX" aria-label="Отменить">×</button></div>
+    <form class="composer" id="composer">
+      <label class="icon" title="Фото" aria-label="Отправить фото"><input type="file" id="pic" accept="image/*" hidden><svg viewBox="0 0 24 24"><path d="M4 5h16v14H4zm2 2v8l4-4 3 3 2-2 3 3V7zm9 1.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3z"/></svg></label>
+      <textarea id="txt" rows="1" placeholder="Сообщение" maxlength="4000"></textarea>
+      <button type="button" class="icon mic" id="mic" title="Удерживай, чтобы записать голосовое" aria-label="Голосовое"><svg viewBox="0 0 24 24"><path d="M12 3a3 3 0 0 1 3 3v6a3 3 0 0 1-6 0V6a3 3 0 0 1 3-3zm-7 9h2a5 5 0 0 0 10 0h2a7 7 0 0 1-6 6.9V21h-2v-2.1A7 7 0 0 1 5 12z"/></svg></button>
+      <button class="icon send" id="send" aria-label="Отправить" hidden><svg viewBox="0 0 24 24"><path d="M3 20.5 21 12 3 3.5 5.5 12zM5.5 12H13"/></svg></button>
+    </form>
+    <div class="rec" id="rec" hidden><i></i><span id="recT">0:00</span> Запись… отпусти, чтобы отправить, или уведи палец, чтобы отменить</div>
+  </section>
+  <div class="empty" id="emptyChat"><b>Vela</b><p>Выбери чат или звезду слева</p></div>
+</main>
+<div class="sheet" id="setDlg" hidden>
+  <div class="sheetCard setCard">
+    <div class="setHead"><b>Настройки</b><button class="icon" id="setX" aria-label="Закрыть">×</button></div>
+
+    <h3>Профиль</h3>
+    <div class="prof">
+      <label class="bigAva" id="pAva" title="Сменить фото"><input type="file" id="pPic" accept="image/*" hidden><span></span></label>
+      <div class="profF">
+        <input id="pName" maxlength="24" placeholder="Ник">
+        <input id="pStatus" maxlength="70" placeholder="Статус: чем занят, настроение…">
+        <button class="link" id="pNoPic">Убрать фото</button>
+      </div>
+    </div>
+    <p class="lbl">Цвет флажка</p>
+    <div class="sw" id="pHue"></div>
+    <button class="main" id="pSave">Сохранить профиль</button>
+
+    <h3>Оформление</h3>
+    <p class="lbl">Акцент</p>
+    <div class="sw" id="oAcc"></div>
+    <p class="lbl">Фон чата</p>
+    <div class="seg2" id="oTheme"><button data-v="glass">Сияние</button><button data-v="mono">Ч/Б</button><button data-v="paper">Парусина</button><button data-v="night">Ночь</button></div>
+    <p class="lbl">Размер текста</p>
+    <div class="seg2" id="oSize"><button data-v="14">Мелкий</button><button data-v="16">Обычный</button><button data-v="18">Крупный</button></div>
+    <p class="lbl">Пузыри</p>
+    <div class="seg2" id="oBub"><button data-v="22">Мягкие</button><button data-v="10">Строгие</button></div>
+    <label class="tog"><input type="checkbox" id="oStars"> Звёздная пыль и анимации</label>
+
+    <h3>Защита</h3>
+    <label class="tog"><input type="checkbox" id="sPin"> Код при входе в Vela</label>
+    <label class="tog"><input type="checkbox" id="sLockHide"> Спрашивать код после сворачивания</label>
+    <label class="tog"><input type="checkbox" id="sHideText"> Не показывать текст в уведомлениях</label>
+    <p class="note">Код хранится только на этом устройстве. Переписку и так видят только участники чата: это проверяет сервер.</p>
+
+    <h3>Где я</h3>
+    <p class="where" id="whereTxt">Определяю…</p>
+    <label class="tog"><input type="checkbox" id="sWhere"> Определять страну и VPN</label>
+    <p class="note">Видно только тебе, на этом устройстве. Никуда не сохраняется и другим не показывается. Страну подсказывает сервис ipapi.is по адресу подключения.</p>
+
+    <button class="danger" id="sOut">Выйти из аккаунта</button>
+  </div>
+</div>
+<div class="lock" id="lock" hidden>
+  <div class="lockCard">
+    <h1 class="word sm">Vela</h1>
+    <p id="lockMsg">Введи код</p>
+    <input id="lockIn" type="password" inputmode="numeric" maxlength="8" autocomplete="off">
+    <button class="link" id="lockOut">Забыл код — выйти из аккаунта</button>
+  </div>
+</div>
+
+<div class="menu" id="menu" hidden></div>
+<div class="sheet" id="sheet" hidden><div class="sheetCard"><b id="shTitle"></b><div id="shBody"></div><button id="shX">Закрыть</button></div></div>
+<div class="viewer" id="viewer" hidden><img id="viewImg" alt=""></div>
+<div class="toast" id="toast" hidden></div>
+
+<script src="config.js"></script>
+<script src="bundle.js"></script>
+</body>
+</html>
