@@ -1,5 +1,5 @@
 "use strict";
-const { app, BrowserWindow, Tray, Menu, shell, nativeImage } = require("electron");
+const { app, BrowserWindow, Tray, Menu, shell, nativeImage, ipcMain } = require("electron");
 const path = require("path");
 if (!app.requestSingleInstanceLock()) app.quit();
 if (process.platform === "win32") app.setAppUserModelId("com.vegasdev.vela");
@@ -14,7 +14,7 @@ function createWindow() {
     title: "Vela",
     icon: path.join(__dirname, "build", "icon.png"),
     autoHideMenuBar: true,
-    webPreferences: { contextIsolation: true, nodeIntegration: false, sandbox: true }
+    webPreferences: { contextIsolation: true, nodeIntegration: false, sandbox: true, preload: path.join(__dirname, "preload.js"), additionalArguments: ["--vela-v=" + app.getVersion()] }
   });
   win.loadFile(path.join(__dirname, "src", "index.html"));
   win.webContents.setWindowOpenHandler(({ url }) => {
@@ -54,7 +54,15 @@ function updates() {
   try {
     const { autoUpdater } = require("electron-updater");
     autoUpdater.autoInstallOnAppQuit = true;
-    const check = () => autoUpdater.checkForUpdatesAndNotify().catch(() => {
+    const tell = (o) => win && win.webContents.send("upd", o);
+    autoUpdater.on("update-available", (i) => tell({ s: "load", v: i.version, p: 0 }));
+    autoUpdater.on("download-progress", (p) => tell({ s: "load", p: Math.round(p.percent) }));
+    autoUpdater.on("update-downloaded", (i) => tell({ s: "ready", v: i.version }));
+    autoUpdater.on("update-not-available", () => tell({ s: "none" }));
+    autoUpdater.on("error", () => tell({ s: "err" }));
+    ipcMain.on("upd-restart", () => { quitting = true; autoUpdater.quitAndInstall(); });
+    ipcMain.on("upd-check", () => check());
+    const check = () => autoUpdater.checkForUpdates().catch(() => {
     });
     setTimeout(check, 5e3);
     setInterval(check, 2 * 60 * 60 * 1e3);

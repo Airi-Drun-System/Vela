@@ -34,6 +34,57 @@ if (Capacitor.isNativePlatform()) {
   }) };
 }
 const $ = (id) => document.getElementById(id);
+const VelaUpdate = Capacitor.registerPlugin("VelaUpdate");
+const upd = { s: "", v: "", p: 0, url: "" };
+function showUpd() {
+  const b = $("upd");
+  b.hidden = !["get", "load", "ready", "fail"].includes(upd.s);
+  b.className = "upd " + upd.s;
+  $("updBar").style.setProperty("--p", upd.p);
+  $("updT").textContent = upd.s === "ready" ? "Обновление готово" : upd.s === "load" ? "Загружаю обновление" : upd.s === "fail" ? "Не скачалось" : "Вышла новая версия";
+  $("updS").textContent = upd.s === "ready" ? "Нажми, чтобы перезапустить" : upd.s === "load" ? (upd.v ? upd.v + " · " : "") + upd.p + "%" : upd.s === "fail" ? "Нажми, чтобы попробовать ещё" : upd.v + " · нажми, чтобы обновить";
+  if ($("verS")) $("verS").textContent = upd.s === "none" ? "Последняя версия" : upd.s === "chk" ? "Проверяю…" : upd.s ? "Есть обновление " + upd.v : "Проверить обновления";
+}
+const newer = (a, b) => { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };
+let myVer = "";
+async function checkUpd() {
+  if (window.velaPC) { upd.s = "chk"; showUpd(); window.velaPC.check(); return; }
+  if (!Capacitor.isNativePlatform()) return;
+  upd.s = "chk"; showUpd();
+  try {
+    myVer = myVer || (await App.getInfo()).version;
+    const r = await (await fetch("https://api.github.com/repos/Airi-Drun-System/Vela/releases/tags/android")).json();
+    const v = (r.body || "").trim(), a = (r.assets || []).find((x) => x.name === "Vela-android.apk");
+    if (a && /^\d+\.\d+\.\d+$/.test(v) && newer(v, myVer)) Object.assign(upd, { s: "get", v, url: a.browser_download_url });
+    else upd.s = "none";
+  } catch {
+    upd.s = "";
+  }
+  showUpd();
+}
+$("upd").onclick = async () => {
+  if (window.velaPC) { if (upd.s === "ready") window.velaPC.restart(); else if (upd.s === "fail") checkUpd(); return; }
+  if (upd.s !== "get" && upd.s !== "fail") return;
+  Object.assign(upd, { s: "load", p: 0 });
+  showUpd();
+  try {
+    await VelaUpdate.install({ url: upd.url });
+    upd.s = "get";
+  } catch (e) {
+    upd.s = e && e.message === "permission" ? "get" : "fail";
+    if (upd.s === "get") toast("Разреши установку из Vela и нажми ещё раз");
+  }
+  showUpd();
+};
+if (window.velaPC) {
+  myVer = window.velaPC.version;
+  window.velaPC.onUpdate((o) => { if (o.s === "err") o.s = upd.s === "chk" ? "" : upd.s === "load" ? "fail" : upd.s; Object.assign(upd, o); showUpd(); });
+} else if (Capacitor.isNativePlatform()) {
+  VelaUpdate.addListener("progress", (o) => { upd.p = o.p; showUpd(); });
+  setTimeout(checkUpd, 4e3);
+  setInterval(checkUpd, 3 * 60 * 60 * 1e3);
+  App.addListener("resume", () => { if (!upd.s || upd.s === "none") checkUpd(); });
+}
 const fb = initializeApp(window.VELA_CONFIG);
 const auth = getAuth(fb);
 setPersistence(auth, browserLocalPersistence).catch(() => {
@@ -311,7 +362,11 @@ function profAva() {
   $("pAva").style.backgroundImage = pPhoto ? `url("${pPhoto}")` : "";
   a.textContent = pPhoto ? "" : initials($("pName").value || me.name);
 }
+$("sVer").onclick = () => { if (upd.s === "get" || upd.s === "ready" || upd.s === "fail") { $("setDlg").hidden = true; $("upd").click(); } else checkUpd(); };
 function openSettings() {
+  if (!myVer && Capacitor.isNativePlatform()) App.getInfo().then((i) => { myVer = i.version; $("verN").textContent = myVer; }).catch(() => {});
+  $("verN").textContent = myVer;
+  showUpd();
   pPhoto = me.photo || null;
   pHue = me.hue != null ? me.hue : null;
   $("pName").value = me.name;

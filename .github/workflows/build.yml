@@ -48,4 +48,4 @@ jobs:
       - run: cp android/app/build/outputs/apk/debug/app-debug.apk Vela-android.apk
       - uses: softprops/action-gh-release@v2
         if: env.HAS_KEY == 'true'
-        with: { tag_name: android, name: "Vela — Android", prerelease: true, make_latest: false, target_commitish: "${{ github.sha }}", files: Vela-android.apk }
+        with: { tag_name: android, name: "Vela — Android", prerelease: true, make_latest: false, target_commitish: "${{ github.sha }}", files: Vela-android.apk, body: "${{ env.VV }}" }

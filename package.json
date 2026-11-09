@@ -37,6 +37,7 @@
     "copyright": "© 2026 VegasDev",
     "files": [
       "main.js",
+      "preload.js",
       "src/**",
       "!src/app.js",
       "!src/lib.js",
