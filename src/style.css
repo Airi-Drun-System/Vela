@@ -4082,3 +4082,71 @@ body.pc .sideTop, body.pc .chatTop {
 body.pc .sideTop *, body.pc .chatTop *, body.pc .rTop * {
   -webkit-app-region: no-drag;
 }
+.rip {
+  position: fixed;
+  z-index: 200;
+  overflow: hidden;
+  pointer-events: none;
+}
+.rip i {
+  position: absolute;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 255, 255, .28) 0, rgba(255, 255, 255, .12) 45%, transparent 70%);
+  transform: scale(0);
+  animation: ripA .6s cubic-bezier(.2, .7, .3, 1) forwards;
+}
+@keyframes ripA {
+  to { transform: scale(1); opacity: 0; }
+}
+body.paper .rip i {
+  background: radial-gradient(circle, rgba(0, 0, 0, .14) 0, rgba(0, 0, 0, .06) 45%, transparent 70%);
+}
+.spark {
+  position: fixed;
+  z-index: 210;
+  width: 6px;
+  height: 6px;
+  margin: -3px 0 0 -3px;
+  border-radius: 2px;
+  pointer-events: none;
+  font-size: 18px;
+  line-height: 1;
+  animation: sparkA .8s cubic-bezier(.15, .8, .3, 1) forwards;
+}
+.spark:not(:empty) {
+  width: auto;
+  height: auto;
+  background: none !important;
+  margin: -12px 0 0 -10px;
+}
+@keyframes sparkA {
+  0% { transform: translate(0, 0) scale(.4) rotate(0); opacity: 1; }
+  70% { opacity: 1; }
+  100% { transform: translate(var(--dx), var(--dy)) scale(1) rotate(var(--r)); opacity: 0; }
+}
+body.live button, body.live .ci, body.live .chip, body.live .pMem, body.live .verRow, body.live .fr, body.live .fxb, body.live label.icon {
+  transition: scale .18s cubic-bezier(.3, 1.6, .5, 1), translate .25s cubic-bezier(.2, .9, .3, 1), background-color .15s, box-shadow .15s;
+}
+body.live button:active, body.live .ci:active, body.live .chip:active, body.live .pMem:active, body.live .fr:active, body.live .fxb:active, body.live label.icon:active {
+  scale: .95;
+  transition-duration: .06s;
+}
+body.live .ci:active {
+  scale: .98;
+}
+body.live .ci:hover, body.live .pMem:hover, body.live .verRow:hover, body.live .chip:hover {
+  background-image: radial-gradient(circle 140px at var(--mx, 50%) var(--my, 50%), rgba(255, 255, 255, .07), transparent);
+}
+body.live .fab:hover, body.live #send:hover, body.live .rBtns button:hover {
+  box-shadow: 0 0 0 6px rgba(255, 255, 255, .06), 0 10px 30px rgba(0, 0, 0, .35);
+}
+body.live .pc {
+  transition: transform .25s cubic-bezier(.2, .9, .3, 1);
+  will-change: transform;
+}
+body.live .m.in .bub {
+  transform-origin: var(--ox, 100%) 100%;
+}
+#liveRow[hidden] {
+  display: none;
+}

@@ -28,6 +28,7 @@ import { LocalNotifications } from "@capacitor/local-notifications";
 import { App } from "@capacitor/app";
 import { countryStars } from "./shape.js";
 import { FX, setFx, fxPreview } from "./fx.js";
+import { initLive, setLive, sfx, burst, liveOk } from "./live.js";
 import { dmId, isOnline, fmtTime, fmtDay, initials, hueOf, linkify } from "./lib.js";
 if (Capacitor.isNativePlatform()) {
   let nid = 1;
@@ -292,7 +293,7 @@ const setLS = (k, v) => {
   }
 };
 const ACC = ["#FF4F1F", "#2FB7A4", "#3D7BFF", "#E8B321", "#E8436F", "#7FBF3F"];
-const look = { acc: LS("acc", ACC[0]), theme: LS("theme", "mono"), size: LS("size", 16), bub: LS("bub", 22), stars: LS("stars", true), anim: LS("anim", "spring"), fx: LS("fx", "none"), dots: LS("dots", "wave"), type: LS("type", "glow") };
+const look = { acc: LS("acc", ACC[0]), theme: LS("theme", "mono"), size: LS("size", 16), bub: LS("bub", 22), stars: LS("stars", true), anim: LS("anim", "spring"), fx: LS("fx", "none"), live: LS("live", true), sfx: LS("sfx", true), dots: LS("dots", "wave"), type: LS("type", "glow") };
 function applyLook() {
   const r = document.documentElement.style;
   r.setProperty("--sig", look.acc);
@@ -499,6 +500,9 @@ function openSettings() {
     fxBox.append(b);
   }
   $("oStars").checked = look.stars;
+  $("liveRow").hidden = !liveOk;
+  $("oLive").checked = look.live;
+  $("oSfx").checked = look.sfx;
   $("sPin").checked = !!sec.pin;
   $("sLockHide").checked = sec.lockHide;
   $("sHideText").checked = sec.hideText;
@@ -813,6 +817,7 @@ function listen() {
     msgs = qs.docs.map((d) => ({ id: d.id, ...d.data({ serverTimestamps: "estimate" }) })).reverse();
     renderMsgs(first);
     const last = msgs[msgs.length - 1];
+    if (!first && last && last.id !== before && last.uid !== me.uid && !document.hidden) sfx("recv");
     first = false;
     markRead();
   });
@@ -1017,6 +1022,8 @@ function msgMenu(m, el) {
 }
 function react(m, e) {
   const has = (m.re && m.re[e] || []).includes(me.uid);
+  const mel = $("msgs").querySelector(`[data-id="${m.id}"] .bub`);
+  if (!has && mel) { const r = mel.getBoundingClientRect(); burst(r.left + r.width / 2, r.bottom - 10, [e], 7); sfx("pop"); }
   updateDoc(doc(db, "chats", cur.id, "messages", m.id), { ["re." + e]: has ? arrayRemove(me.uid) : arrayUnion(me.uid) }).catch(() => {
   });
 }
@@ -1107,6 +1114,11 @@ txt.addEventListener("keydown", (e) => {
 $("composer").onsubmit = (e) => {
   e.preventDefault();
   const t = txt.value.trim();
+  if (t) {
+    const r = $("send").getBoundingClientRect();
+    sfx("send");
+    burst(r.left + r.width / 2, r.top + r.height / 2, null, 9);
+  }
   if (t) send({ text: t });
   txt.focus();
 };
@@ -2234,3 +2246,7 @@ function cropEditor(f, W, H, round, limit = 78000) {
     };
   });
 }
+
+$("oLive").onchange = () => { look.live = $("oLive").checked; setLS("live", look.live); setLive({ live: look.live }); };
+$("oSfx").onchange = () => { look.sfx = $("oSfx").checked; setLS("sfx", look.sfx); setLive({ sfx: look.sfx }); };
+initLive({ live: look.live, sfx: look.sfx });
