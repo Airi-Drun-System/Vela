@@ -3561,15 +3561,24 @@ body.md .ci.new i {
   bottom: -10%;
   background: center / 100% 100% no-repeat;
 }
-.ava[data-f="neon"]::before { background-image: url(frames/neon.svg); }
-.ava[data-f="fire"]::before { background-image: url(frames/fire.svg); }
-.ava[data-f="ice"]::before { background-image: url(frames/ice.svg); }
-.ava[data-f="gold"]::before { background-image: url(frames/gold.svg); }
-.ava[data-f="space"]::before { background-image: url(frames/space.svg); }
-.ava[data-f="coco"]::before { background-image: url(frames/coco.svg); }
-.ava[data-f="komaru"]::before { background-image: url(frames/komaru.svg); }
-.ava[data-f="komugi"]::before { background-image: url(frames/komugi.svg); }
-.ava[data-f="kotokrolik"]::before { background-image: url(frames/kotokrolik.svg); }
+.ava[data-f="neon"]::before { background-image: url(frames/neon-s.svg); }
+.pc .ava[data-f="neon"]::before { background-image: url(frames/neon.svg); }
+.ava[data-f="fire"]::before { background-image: url(frames/fire-s.svg); }
+.pc .ava[data-f="fire"]::before { background-image: url(frames/fire.svg); }
+.ava[data-f="ice"]::before { background-image: url(frames/ice-s.svg); }
+.pc .ava[data-f="ice"]::before { background-image: url(frames/ice.svg); }
+.ava[data-f="gold"]::before { background-image: url(frames/gold-s.svg); }
+.pc .ava[data-f="gold"]::before { background-image: url(frames/gold.svg); }
+.ava[data-f="space"]::before { background-image: url(frames/space-s.svg); }
+.pc .ava[data-f="space"]::before { background-image: url(frames/space.svg); }
+.ava[data-f="coco"]::before { background-image: url(frames/coco-s.svg); }
+.pc .ava[data-f="coco"]::before { background-image: url(frames/coco.svg); }
+.ava[data-f="komaru"]::before { background-image: url(frames/komaru-s.svg); }
+.pc .ava[data-f="komaru"]::before { background-image: url(frames/komaru.svg); }
+.ava[data-f="komugi"]::before { background-image: url(frames/komugi-s.svg); }
+.pc .ava[data-f="komugi"]::before { background-image: url(frames/komugi.svg); }
+.ava[data-f="kotokrolik"]::before { background-image: url(frames/kotokrolik-s.svg); }
+.pc .ava[data-f="kotokrolik"]::before { background-image: url(frames/kotokrolik.svg); }
 .frames .fr {
   padding-top: 22px;
 }
@@ -3758,4 +3767,14 @@ body.fx.glass.mono {
 }
 body.fx.glass.mono .ci.sel {
   background: rgba(255, 255, 255, .1);
+}
+body.fx *, body.fx *::before {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+body.fx .sheetCard, body.fx .menu {
+  background: rgba(26, 26, 28, .97);
+}
+body.fx.md .sheetCard, body.fx.md .menu {
+  background: var(--md-c2);
 }

@@ -95,7 +95,7 @@ function size() {
 }
 function frame(t) {
   raf = requestAnimationFrame(frame);
-  if (document.hidden || roomEl && !roomEl.hidden) return;
+  if (document.hidden || roomEl && !roomEl.hidden || document.querySelector(".sheet:not([hidden])")) return;
   const dt = Math.min(0.05, (t - last) / 1000);
   if (mobile && t - last < 31) return;
   last = t;
