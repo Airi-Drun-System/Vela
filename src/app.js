@@ -27,6 +27,7 @@ import { Capacitor } from "@capacitor/core";
 import { LocalNotifications } from "@capacitor/local-notifications";
 import { App } from "@capacitor/app";
 import { countryStars } from "./shape.js";
+import { FX, setFx, fxPreview } from "./fx.js";
 import { dmId, isOnline, fmtTime, fmtDay, initials, hueOf, linkify } from "./lib.js";
 if (Capacitor.isNativePlatform()) {
   let nid = 1;
@@ -290,7 +291,7 @@ const setLS = (k, v) => {
   }
 };
 const ACC = ["#FF4F1F", "#2FB7A4", "#3D7BFF", "#E8B321", "#E8436F", "#7FBF3F"];
-const look = { acc: LS("acc", ACC[0]), theme: LS("theme", "mono"), size: LS("size", 16), bub: LS("bub", 22), stars: LS("stars", true), anim: LS("anim", "spring"), dots: LS("dots", "wave"), type: LS("type", "glow") };
+const look = { acc: LS("acc", ACC[0]), theme: LS("theme", "mono"), size: LS("size", 16), bub: LS("bub", 22), stars: LS("stars", true), anim: LS("anim", "spring"), fx: LS("fx", "none"), dots: LS("dots", "wave"), type: LS("type", "glow") };
 function applyLook() {
   const r = document.documentElement.style;
   r.setProperty("--sig", look.acc);
@@ -302,6 +303,7 @@ function applyLook() {
   document.body.classList.toggle("mono", look.theme === "mono");
   document.body.classList.toggle("md", look.theme === "md");
   document.body.classList.toggle("calm", !look.stars);
+  setFx(look.stars ? look.fx : "");
   document.body.className = document.body.className.replace(/\b(ma|td|tt)-\w+/g, "").trim() + ` ma-${look.anim} td-${look.dots} tt-${look.type}`;
 }
 applyLook();
@@ -486,6 +488,15 @@ function openSettings() {
     applyLook();
     if (k === "dots") { $("tyB").hidden = false; $("tyWho").textContent = ""; clearTimeout(applyLook.t); applyLook.t = setTimeout(renderHead, 2500); }
   });
+  const fxBox = $("oFx");
+  fxBox.textContent = "";
+  for (const [k, f] of [["none", { t: "Нет" }], ...Object.entries(FX)]) {
+    const b = el("button", "fxb" + (k === look.fx ? " on" : ""));
+    if (k !== "none") b.append(fxPreview(k));
+    b.append(el("span", "", f.t));
+    b.onclick = () => { look.fx = k; setLS("fx", k); applyLook(); fxBox.querySelectorAll(".fxb").forEach((x) => x.classList.toggle("on", x === b)); };
+    fxBox.append(b);
+  }
   $("oStars").checked = look.stars;
   $("sPin").checked = !!sec.pin;
   $("sLockHide").checked = sec.lockHide;

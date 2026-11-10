@@ -3709,3 +3709,53 @@ body.glass.mono .sw button.on {
 body.glass.mono .ci.sel {
   background: rgba(255, 255, 255, .08);
 }
+#fx {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  pointer-events: none;
+  image-rendering: pixelated;
+}
+body.fx .app, body.fx .auth {
+  position: relative;
+  z-index: 1;
+}
+body.fx:not(.glass) .chat, body.fx:not(.glass) .empty, body.fx:not(.glass) .msgs {
+  background: transparent;
+}
+.fxs {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(74px, 1fr));
+  gap: 6px;
+}
+.fxb {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  padding: 8px 4px 7px;
+  border-radius: 12px;
+  background: var(--paper2);
+  color: var(--ink);
+  font-size: .72em;
+}
+.fxb canvas {
+  width: 44px;
+  height: 30px;
+  image-rendering: pixelated;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, .35);
+}
+.fxb.on {
+  box-shadow: inset 0 0 0 2px var(--ink);
+}
+body.fx.glass {
+  --g-bg: rgba(28, 30, 40, .38);
+}
+body.fx.glass.mono {
+  --g-bg: rgba(20, 20, 21, .4);
+}
+body.fx.glass.mono .ci.sel {
+  background: rgba(255, 255, 255, .1);
+}
