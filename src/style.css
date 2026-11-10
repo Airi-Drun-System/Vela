@@ -3671,7 +3671,7 @@ body.pc .side, body.pc .empty {
   -webkit-app-region: no-drag;
 }
 body.pc .empty {
-  -webkit-app-region: drag;
+  -webkit-app-region: no-drag;
 }
 body.glass::before {
   filter: none;
@@ -4072,4 +4072,13 @@ body.fx.md .sheetCard, body.fx.md .menu {
 }
 #cropBox, #phBox {
   z-index: 60;
+}
+body.pc .sheet, body.pc .sheet *, body.pc .room, body.pc .call, body.pc .circRec, body.pc #menu, body.pc #lock, body.pc #viewer, body.pc .toast, body.pc .auth, body.pc .auth * {
+  -webkit-app-region: no-drag;
+}
+body.pc .sideTop, body.pc .chatTop {
+  -webkit-app-region: drag;
+}
+body.pc .sideTop *, body.pc .chatTop *, body.pc .rTop * {
+  -webkit-app-region: no-drag;
 }
