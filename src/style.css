@@ -3976,3 +3976,100 @@ body.fx.md .sheetCard, body.fx.md .menu {
 .msgs {
   overflow-x: hidden;
 }
+.phCard, .cropCard {
+  width: min(460px, 100%);
+}
+.phGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  margin-bottom: 10px;
+  max-height: 52vh;
+  overflow: auto;
+}
+.phGrid[data-n="1"] {
+  grid-template-columns: 1fr;
+}
+.phGrid[data-n="2"], .phGrid[data-n="4"] {
+  grid-template-columns: 1fr 1fr;
+}
+.phItem {
+  position: relative;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #000;
+}
+.phItem img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-height: 46vh;
+  object-fit: contain;
+  aspect-ratio: auto;
+}
+.phGrid:not([data-n="1"]) .phItem img {
+  aspect-ratio: 1;
+  object-fit: cover;
+}
+.phX {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, .6);
+  color: #fff;
+  font-size: 18px;
+  line-height: 1;
+}
+#phCap {
+  resize: none;
+  margin-bottom: 10px;
+  font: inherit;
+  padding: 11px 14px;
+  border-radius: 14px;
+  background: var(--paper2);
+  color: var(--ink);
+}
+#phGo, #cropGo {
+  display: block;
+  width: 100%;
+}
+.cropView {
+  position: relative;
+  width: 100%;
+  border-radius: 14px;
+  overflow: hidden;
+  background: #000;
+  touch-action: none;
+  cursor: grab;
+}
+.cropView canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.cropMask {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, .8);
+  border-radius: 14px;
+}
+.cropMask.round {
+  inset: 0;
+  border-radius: 50%;
+  box-shadow: 0 0 0 999px rgba(0, 0, 0, .55), inset 0 0 0 2px rgba(255, 255, 255, .85);
+}
+#cropZoom {
+  width: 100%;
+  margin: 12px 0 2px;
+  accent-color: var(--ink);
+}
+.cropView {
+  margin: 0 auto;
+}
+#cropBox, #phBox {
+  z-index: 60;
+}

@@ -243,6 +243,7 @@ async function startApp(u) {
       cur = chats.get(cur.id);
       renderHead();
     }
+    if (!$("prof").hidden && profOf && typeof profOf !== "string" && chats.get(profOf.id) && !$("prof").contains(document.activeElement)) openProfile(chats.get(profOf.id));
     syncRoom();
   }));
   listenCalls();
@@ -517,13 +518,9 @@ $("pBan").onchange = async () => {
   $("pBan").value = "";
   if (!f) return;
   try {
-    const bmp = await createImageBitmap(f).catch(() => new Promise((ok, no) => { const i = new Image(); i.onload = () => ok(i); i.onerror = no; i.src = URL.createObjectURL(f); }));
-    const w = bmp.width || bmp.naturalWidth, h = bmp.height || bmp.naturalHeight, c = document.createElement("canvas");
-    c.width = 600;
-    c.height = 240;
-    const k = Math.max(600 / w, 240 / h);
-    c.getContext("2d").drawImage(bmp, (600 - w * k) / 2, (240 - h * k) / 2, w * k, h * k);
-    for (let q = 0.85; q >= 0.3; q -= 0.1) { pBan = c.toDataURL("image/jpeg", q); if (pBan.length < 110000) break; }
+    const url = await cropEditor(f, 750, 300, false, 110000);
+    if (!url) return;
+    pBan = url;
     profAva();
   } catch {
     toast("Это фото не открылось");
@@ -535,11 +532,9 @@ $("pPic").onchange = async () => {
   $("pPic").value = "";
   if (!f) return;
   try {
-    const bmp = await createImageBitmap(f).catch(() => new Promise((ok, no) => { const i = new Image(); i.onload = () => ok(i); i.onerror = no; i.src = URL.createObjectURL(f); }));
-    const w = bmp.width || bmp.naturalWidth, h = bmp.height || bmp.naturalHeight, m = Math.min(w, h), c = document.createElement("canvas");
-    c.width = c.height = 192;
-    c.getContext("2d").drawImage(bmp, (w - m) / 2, (h - m) / 2, m, m, 0, 0, 192, 192);
-    for (let q = 0.85; q >= 0.3; q -= 0.15) { pPhoto = c.toDataURL("image/jpeg", q); if (pPhoto.length < 70000) break; }
+    const url = await cropEditor(f, 320, 320, true);
+    if (!url) return;
+    pPhoto = url;
     profAva();
     await updateDoc(doc(db, "users", me.uid), { photo: pPhoto }).then(() => toast("Фото поставлено"), (e) => toast("Фото не сохранилось: " + (e.code || e.message)));
   } catch {
@@ -1153,11 +1148,40 @@ async function send(data) {
 }
 $("send").onclick = () => $("composer").requestSubmit();
 $("pic").onchange = () => {
-  const f = $("pic").files[0];
+  const fs = [...$("pic").files];
   $("pic").value = "";
-  if (f) sendPhoto(f);
+  if (fs.length) confirmPhotos(fs);
 };
-async function sendPhoto(f) {
+function confirmPhotos(fs) {
+  if (!cur || !fs.length) return;
+  fs = fs.slice(0, 10);
+  const box = $("phBox"), grid = $("phGrid");
+  grid.textContent = "";
+  grid.dataset.n = fs.length;
+  const urls = fs.map((f) => URL.createObjectURL(f));
+  urls.forEach((u, i) => {
+    const w = el("div", "phItem"), im = el("img"), x = el("button", "phX", "×");
+    im.src = u;
+    x.onclick = () => { fs.splice(fs.indexOf(fs[i]), 1, null); w.remove(); grid.dataset.n = grid.children.length; if (!grid.children.length) close(); };
+    w.append(im, x);
+    grid.append(w);
+  });
+  $("phCap").value = txt.value;
+  $("phTitle").textContent = fs.length > 1 ? fs.length + " фото" : "Отправить фото";
+  box.hidden = false;
+  setTimeout(() => $("phCap").focus(), 50);
+  const close = () => { box.hidden = true; urls.forEach((u) => URL.revokeObjectURL(u)); };
+  $("phX").onclick = close;
+  box.onclick = (e) => { if (e.target === box) close(); };
+  $("phGo").onclick = async () => {
+    const cap = $("phCap").value.trim(), list = fs.filter(Boolean);
+    close();
+    if (cap === txt.value.trim()) { txt.value = ""; grow(); sendBtn(); }
+    for (let i = 0; i < list.length; i++) await sendPhoto(list[i], i === 0 ? cap : "");
+  };
+  $("phCap").onkeydown = (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); $("phGo").click(); } };
+}
+async function sendPhoto(f, cap) {
   if (!cur) return;
   try {
     const bmp = await createImageBitmap(f);
@@ -1170,7 +1194,7 @@ async function sendPhoto(f) {
       url = c.toDataURL("image/jpeg", Math.max(0.4, q));
       if (url.length < 7e5 || q < 0.3) break;
     }
-    send({ img: url, text: txt.value.trim() });
+    send({ img: url, text: cap != null ? cap : txt.value.trim() });
   } catch {
     toast("Это фото не открылось");
   }
@@ -1180,7 +1204,9 @@ function pasted(e) {
   const fs = [...e.clipboardData.items].filter((i) => i.kind === "file").map((i) => i.getAsFile()).filter(Boolean);
   if (!fs.length) return;
   e.preventDefault();
-  for (const f of fs) (f.type.startsWith("image/") && f.size < 30 * 1048576 ? sendPhoto(f) : sendFile(f));
+  const imgs = fs.filter((f) => f.type.startsWith("image/") && !/gif|svg/.test(f.type) && f.size < 30 * 1048576);
+  if (imgs.length) confirmPhotos(imgs);
+  for (const f of fs) if (!imgs.includes(f)) sendFile(f);
 }
 txt.addEventListener("paste", pasted);
 addEventListener("paste", (e) => { if (e.target !== txt && !$("chat").hidden && !/INPUT|TEXTAREA/.test(document.activeElement.tagName)) pasted(e); });
@@ -1368,15 +1394,6 @@ function forward(m) {
     }
   } })));
 }
-async function cropPhoto(f) {
-  const bmp = await createImageBitmap(f).catch(() => new Promise((ok, no) => { const i = new Image(); i.onload = () => ok(i); i.onerror = no; i.src = URL.createObjectURL(f); }));
-  const w = bmp.width || bmp.naturalWidth, h = bmp.height || bmp.naturalHeight, m = Math.min(w, h), c = document.createElement("canvas");
-  c.width = c.height = 192;
-  c.getContext("2d").drawImage(bmp, (w - m) / 2, (h - m) / 2, m, m, 0, 0, 192, 192);
-  let url = "";
-  for (let q = 0.85; q >= 0.3; q -= 0.15) { url = c.toDataURL("image/jpeg", q); if (url.length < 70000) break; }
-  return url;
-}
 const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
 const actBtn = (icon, label, f, bad) => { const b = el("button", "pAct" + (bad ? " bad" : "")); b.innerHTML = icon; b.append(el("span", "", label)); b.onclick = f; return b; };
 let profOf = null;
@@ -1422,7 +1439,11 @@ function openProfile(target) {
     sv.onclick = () => {
       const name = nm.value.trim();
       if (!name) return toast("Название пустое");
-      updateDoc(doc(db, "chats", c.id), { name, about: ab.value.trim() }).then(() => toast("Сохранено"), (e) => toast("Не сохранилось: " + (e.code || e.message)));
+      updateDoc(doc(db, "chats", c.id), { name, about: ab.value.trim() }).then(() => {
+        const x = chats.get(c.id);
+        if (x) { x.name = name; x.about = ab.value.trim(); openProfile(x); renderChats(); renderHead(); }
+        toast("Сохранено");
+      }, (e) => toast("Не сохранилось: " + (e.code || e.message)));
     };
     form.append(nm, ab, sv);
     body.append(form);
@@ -1451,7 +1472,11 @@ $("grpPic").onchange = async () => {
   $("grpPic").value = "";
   if (!f || !profOf || typeof profOf === "string") return;
   try {
-    await updateDoc(doc(db, "chats", profOf.id), { photo: await cropPhoto(f) });
+    const url = await cropEditor(f, 320, 320, true);
+    if (!url) return;
+    await updateDoc(doc(db, "chats", profOf.id), { photo: url });
+    const c = chats.get(profOf.id);
+    if (c) { c.photo = url; openProfile(c); renderChats(); renderHead(); }
     toast("Фото группы обновлено");
   } catch (e) {
     toast("Не сохранилось: " + (e.code || e.message));
@@ -1532,7 +1557,12 @@ async function openFile(m, btn) {
   }
 }
 $("composer").addEventListener("dragover", (e) => e.preventDefault());
-$("chat").addEventListener("drop", (e) => { e.preventDefault(); [...e.dataTransfer.files].reduce((p, f) => p.then(() => (f.type.startsWith("image/") && !/gif|svg/.test(f.type) ? sendPhoto(f) : sendFile(f))), Promise.resolve()); });
+$("chat").addEventListener("drop", (e) => {
+  e.preventDefault();
+  const fs = [...e.dataTransfer.files], imgs = fs.filter((f) => f.type.startsWith("image/") && !/gif|svg/.test(f.type));
+  if (imgs.length) confirmPhotos(imgs);
+  fs.filter((f) => !imgs.includes(f)).reduce((p, f) => p.then(() => sendFile(f)), Promise.resolve());
+});
 $("chat").addEventListener("dragover", (e) => e.preventDefault());
 
 const ring = { ctx: null, t: 0 };
@@ -2148,3 +2178,59 @@ $("circBtn").onclick = circOpen;
 $("crX").onclick = () => circStop(true);
 $("crGo").onclick = () => (cr.rec ? circStop(false) : circStart());
 $("crFlip").onclick = () => { cr.facing = cr.facing === "user" ? "environment" : "user"; circCam().catch(() => toast("Другая камера не открылась")); };
+
+function cropEditor(f, W, H, round, limit = 78000) {
+  return new Promise(async (done) => {
+    let img;
+    try {
+      img = await createImageBitmap(f).catch(() => new Promise((ok, no) => { const i = new Image(); i.onload = () => ok(i); i.onerror = no; i.src = URL.createObjectURL(f); }));
+    } catch {
+      toast("Это фото не открылось");
+      return done(null);
+    }
+    const iw = img.width || img.naturalWidth, ih = img.height || img.naturalHeight;
+    const cv = $("cropCv"), view = $("cropView"), zoom = $("cropZoom");
+    $("cropMask").className = "cropMask" + (round ? " round" : "");
+    view.style.aspectRatio = W + " / " + H;
+    view.style.width = `min(100%, ${(46 * W) / H}vh)`;
+    $("cropBox").hidden = false;
+    const vw = view.clientWidth, vh = view.clientHeight, dpr = Math.min(2, devicePixelRatio || 1);
+    cv.width = vw * dpr;
+    cv.height = vh * dpr;
+    const ctx = cv.getContext("2d"), base = Math.max(vw / iw, vh / ih);
+    let z = 1, ox = 0, oy = 0;
+    zoom.value = 1;
+    const clamp = () => {
+      const s = base * z, mx = Math.max(0, (iw * s - vw) / 2), my = Math.max(0, (ih * s - vh) / 2);
+      ox = Math.max(-mx, Math.min(mx, ox));
+      oy = Math.max(-my, Math.min(my, oy));
+    };
+    const draw = () => {
+      clamp();
+      const s = base * z;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, vw, vh);
+      ctx.drawImage(img, vw / 2 - (iw * s) / 2 + ox, vh / 2 - (ih * s) / 2 + oy, iw * s, ih * s);
+    };
+    draw();
+    let drag = null;
+    view.onpointerdown = (e) => { drag = { x: e.clientX, y: e.clientY, ox, oy }; view.setPointerCapture(e.pointerId); };
+    view.onpointermove = (e) => { if (!drag) return; ox = drag.ox + e.clientX - drag.x; oy = drag.oy + e.clientY - drag.y; draw(); };
+    view.onpointerup = view.onpointercancel = () => { drag = null; };
+    view.onwheel = (e) => { e.preventDefault(); z = Math.max(1, Math.min(4, z * (e.deltaY < 0 ? 1.08 : 0.92))); zoom.value = z; draw(); };
+    zoom.oninput = () => { z = +zoom.value; draw(); };
+    const finish = (url) => { $("cropBox").hidden = true; view.onpointerdown = view.onpointermove = view.onwheel = null; done(url); };
+    $("cropX").onclick = () => finish(null);
+    $("cropGo").onclick = () => {
+      const out = document.createElement("canvas"), k = W / vw, s = base * z;
+      out.width = W;
+      out.height = H;
+      const o = out.getContext("2d");
+      o.imageSmoothingQuality = "high";
+      o.drawImage(img, (vw / 2 - (iw * s) / 2 + ox) * k, (vh / 2 - (ih * s) / 2 + oy) * k, iw * s * k, ih * s * k);
+      let url = "";
+      for (let q = 0.9; q >= 0.3; q -= 0.08) { url = out.toDataURL("image/jpeg", q); if (url.length < limit) break; }
+      finish(url);
+    };
+  });
+}
