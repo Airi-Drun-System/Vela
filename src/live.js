@@ -85,7 +85,7 @@ function frame() {
 }
 export function setLive(o) {
   opts = { ...opts, ...o };
-  document.body.classList.toggle("live", liveOk && opts.live);
+  document.body.classList.toggle("alive", liveOk && opts.live);
 }
 export function initLive(o) {
   setLive(o);
