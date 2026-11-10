@@ -899,6 +899,7 @@ function renderMsgs(jump) {
     if (m.call) html += '<div class="callM ' + (m.call.miss ? "miss" : "") + '"><i>' + (m.call.video ? ICON.video : ICON.phone) + '</i><span><b></b><small></small></span></div>';
     if (m.img) html += '<img class="pic" alt="Фото" loading="lazy">';
     if (m.voice) html += '<audio class="voice" controls preload="none"></audio>';
+    if (m.circle) html += '<button class="circ"><img alt=""><video playsinline loop></video><svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="48" pathLength="100"/></svg><i class="cPlay"></i><span class="cDur"></span></button>';
     if (m.text) html += '<div class="t"></div>';
     html += '<span class="meta"></span>';
     el.innerHTML = '<div class="bub">' + html + "</div>";
@@ -917,6 +918,13 @@ function renderMsgs(jump) {
       };
     }
     if (m.voice) el.querySelector(".voice").src = m.voice;
+    if (m.circle) {
+      el.classList.add("hasCirc");
+      const c = el.querySelector(".circ");
+      if (m.circle.poster) c.querySelector("img").src = m.circle.poster;
+      c.querySelector(".cDur").textContent = Math.floor(m.circle.dur / 60) + ":" + String(m.circle.dur % 60).padStart(2, "0");
+      c.onclick = () => playCirc(m, c);
+    }
     if (m.fwd) el.querySelector(".fwd").textContent = "Переслано от " + nameOf(m.fwd);
     if (m.file) {
       el.querySelector(".file b").textContent = m.file.name;
@@ -944,16 +952,37 @@ function renderMsgs(jump) {
       }
       el.querySelector(".bub").appendChild(r);
     }
+    let press = 0, held = false;
     el.addEventListener("contextmenu", (e) => {
       e.preventDefault();
-      msgMenu(m, el);
+      if (!held) msgMenu(m, el);
     });
-    let press = 0;
     el.addEventListener("touchstart", () => {
-      press = setTimeout(() => msgMenu(m, el), 450);
+      held = false;
+      press = setTimeout(() => { held = true; navigator.vibrate && navigator.vibrate(12); msgMenu(m, el); }, 420);
     }, { passive: true });
-    el.addEventListener("touchend", () => clearTimeout(press));
-    el.addEventListener("touchmove", () => clearTimeout(press), { passive: true });
+    let sx = 0, sy = 0, dx = 0, swiping = false;
+    el.addEventListener("touchstart", (e) => { sx = e.touches[0].clientX; sy = e.touches[0].clientY; dx = 0; swiping = false; }, { passive: true });
+    el.addEventListener("touchmove", (e) => {
+      const x = e.touches[0].clientX - sx, y = e.touches[0].clientY - sy;
+      if (!swiping && Math.abs(x) > 12 && Math.abs(x) > Math.abs(y) * 1.5 && x < 0) swiping = true;
+      if (Math.abs(x) > 8 || Math.abs(y) > 8) clearTimeout(press);
+      if (!swiping) return;
+      dx = Math.max(-80, Math.min(0, x));
+      el.style.transform = `translateX(${dx}px)`;
+      el.classList.toggle("swipeOk", dx < -55);
+    }, { passive: true });
+    el.addEventListener("touchend", (e) => {
+      clearTimeout(press);
+      if (held) e.preventDefault();
+      if (swiping) {
+        if (dx < -55) { setReply(m); navigator.vibrate && navigator.vibrate(10); }
+        el.classList.add("swipeBack");
+        el.style.transform = "";
+        el.classList.remove("swipeOk");
+        setTimeout(() => el.classList.remove("swipeBack"), 220);
+      }
+    });
     el.addEventListener("dblclick", () => setReply(m));
     box.appendChild(el);
     prev = m;
@@ -1084,7 +1113,10 @@ $("composer").onsubmit = (e) => {
   e.preventDefault();
   const t = txt.value.trim();
   if (t) send({ text: t });
+  txt.focus();
 };
+for (const ev of ["pointerdown", "mousedown", "touchstart"]) $("send").addEventListener(ev, (e) => e.preventDefault(), { passive: false });
+$("send").addEventListener("touchend", (e) => { e.preventDefault(); $("composer").requestSubmit(); }, { passive: false });
 async function post(cid, msg) {
   msg = { uid: me.uid, text: "", ts: serverTimestamp(), ...msg };
   await addDoc(collection(db, "chats", cid, "messages"), msg);
@@ -1120,10 +1152,13 @@ async function send(data) {
   }
 }
 $("send").onclick = () => $("composer").requestSubmit();
-$("pic").onchange = async () => {
+$("pic").onchange = () => {
   const f = $("pic").files[0];
   $("pic").value = "";
-  if (!f) return;
+  if (f) sendPhoto(f);
+};
+async function sendPhoto(f) {
+  if (!cur) return;
   try {
     const bmp = await createImageBitmap(f);
     let s = Math.min(1, 1280 / Math.max(bmp.width, bmp.height)), url = "";
@@ -1139,7 +1174,16 @@ $("pic").onchange = async () => {
   } catch {
     toast("Это фото не открылось");
   }
-};
+}
+function pasted(e) {
+  if (!cur || !e.clipboardData) return;
+  const fs = [...e.clipboardData.items].filter((i) => i.kind === "file").map((i) => i.getAsFile()).filter(Boolean);
+  if (!fs.length) return;
+  e.preventDefault();
+  for (const f of fs) (f.type.startsWith("image/") && f.size < 30 * 1048576 ? sendPhoto(f) : sendFile(f));
+}
+txt.addEventListener("paste", pasted);
+addEventListener("paste", (e) => { if (e.target !== txt && !$("chat").hidden && !/INPUT|TEXTAREA/.test(document.activeElement.tagName)) pasted(e); });
 let rec = null;
 $("mic").addEventListener("pointerdown", async (e) => {
   e.preventDefault();
@@ -1488,7 +1532,7 @@ async function openFile(m, btn) {
   }
 }
 $("composer").addEventListener("dragover", (e) => e.preventDefault());
-$("chat").addEventListener("drop", (e) => { e.preventDefault(); [...e.dataTransfer.files].reduce((p, f) => p.then(() => sendFile(f)), Promise.resolve()); });
+$("chat").addEventListener("drop", (e) => { e.preventDefault(); [...e.dataTransfer.files].reduce((p, f) => p.then(() => (f.type.startsWith("image/") && !/gif|svg/.test(f.type) ? sendPhoto(f) : sendFile(f))), Promise.resolve()); });
 $("chat").addEventListener("dragover", (e) => e.preventDefault());
 
 const ring = { ctx: null, t: 0 };
@@ -1984,3 +2028,123 @@ function renderAdmin() {
     box.append(ad);
   }
 }
+
+const circCache = new Map();
+async function circUrl(m) {
+  if (circCache.has(m.circle.id)) return circCache.get(m.circle.id);
+  const qs = await getDocs(collection(db, "chats", cur.id, "files", m.circle.id, "parts"));
+  const b64 = qs.docs.sort((a, b) => a.id.localeCompare(b.id)).map((d) => d.data().d).join("");
+  const bin = atob(b64), u8 = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+  const url = URL.createObjectURL(new Blob([u8], { type: m.circle.type || "video/webm" }));
+  circCache.set(m.circle.id, url);
+  return url;
+}
+async function playCirc(m, c) {
+  const v = c.querySelector("video");
+  document.querySelectorAll(".circ.playing").forEach((x) => { if (x !== c) { x.classList.remove("playing"); x.querySelector("video").pause(); } });
+  if (c.classList.contains("playing")) { v.pause(); c.classList.remove("playing"); return; }
+  if (!v.src) {
+    c.classList.add("busy");
+    try { v.src = await circUrl(m); } catch (e) { c.classList.remove("busy"); return toast("Кружок не загрузился: " + (e.code || e.message)); }
+    c.classList.remove("busy");
+    const ring = c.querySelector("circle");
+    v.ontimeupdate = () => { if (v.duration && isFinite(v.duration)) ring.style.strokeDashoffset = 100 - (v.currentTime / v.duration) * 100; };
+    v.onended = () => c.classList.remove("playing");
+  }
+  v.muted = false;
+  c.classList.add("playing");
+  v.play().catch(() => {});
+}
+const cr = { stream: null, rec: null, chunks: [], t0: 0, timer: 0, facing: "user", cancel: false };
+const CIRC_MAX = 60;
+async function circCam() {
+  if (cr.stream) cr.stream.getTracks().forEach((t) => t.stop());
+  cr.stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: cr.facing, width: { ideal: 480 }, height: { ideal: 480 }, aspectRatio: 1 }, audio: { echoCancellation: true, noiseSuppression: true } });
+  $("crVid").srcObject = cr.stream;
+  $("crVid").classList.toggle("mirror", cr.facing === "user");
+}
+async function circOpen() {
+  if (!cur) return;
+  if (!window.MediaRecorder) return toast("Тут нельзя записать кружок");
+  try {
+    await circCam();
+  } catch {
+    return toast("Нет доступа к камере или микрофону");
+  }
+  cr.rec = null;
+  $("crT").textContent = "0:00";
+  $("crProg").style.strokeDashoffset = 100;
+  $("crGo").textContent = "Записать";
+  $("crFlip").hidden = false;
+  $("circRec").hidden = false;
+}
+function circStart() {
+  const type = ["video/webm;codecs=vp8,opus", "video/webm", "video/mp4"].find((t) => MediaRecorder.isTypeSupported(t)) || "";
+  cr.chunks = [];
+  cr.cancel = false;
+  cr.rec = new MediaRecorder(cr.stream, { mimeType: type, videoBitsPerSecond: 450e3, audioBitsPerSecond: 48e3 });
+  cr.rec.ondataavailable = (e) => e.data.size && cr.chunks.push(e.data);
+  cr.rec.onstop = circDone;
+  cr.rec.start(1000);
+  cr.t0 = Date.now();
+  $("crGo").textContent = "Отправить";
+  $("crFlip").hidden = true;
+  $("circRec").classList.add("on");
+  clearInterval(cr.timer);
+  cr.timer = setInterval(() => {
+    const s = (Date.now() - cr.t0) / 1000;
+    $("crT").textContent = Math.floor(s / 60) + ":" + String(Math.floor(s) % 60).padStart(2, "0");
+    $("crProg").style.strokeDashoffset = 100 - Math.min(100, (s / CIRC_MAX) * 100);
+    if (s >= CIRC_MAX) circStop(false);
+  }, 200);
+}
+function circStop(cancel) {
+  cr.cancel = cancel;
+  clearInterval(cr.timer);
+  if (cr.rec && cr.rec.state !== "inactive") cr.rec.stop();
+  else circClose();
+}
+function circClose() {
+  if (cr.stream) cr.stream.getTracks().forEach((t) => t.stop());
+  cr.stream = null;
+  $("crVid").srcObject = null;
+  $("circRec").hidden = true;
+  $("circRec").classList.remove("on");
+}
+async function circDone() {
+  const dur = Math.max(1, Math.round((Date.now() - cr.t0) / 1000));
+  let poster = "";
+  try {
+    const v = $("crVid"), c = document.createElement("canvas"), s = Math.min(v.videoWidth, v.videoHeight);
+    c.width = c.height = 160;
+    c.getContext("2d").drawImage(v, (v.videoWidth - s) / 2, (v.videoHeight - s) / 2, s, s, 0, 0, 160, 160);
+    poster = c.toDataURL("image/jpeg", 0.6);
+  } catch {}
+  circClose();
+  if (cr.cancel || !cr.chunks.length || !cur) return;
+  const type = cr.rec.mimeType || "video/webm", blob = new Blob(cr.chunks, { type });
+  if (blob.size > 20 * 1048576) return toast("Кружок вышел слишком большим");
+  const cid = cur.id, bar = $("upBar");
+  try {
+    const b64 = await new Promise((ok, no) => { const r = new FileReader(); r.onload = () => ok(String(r.result).split(",")[1] || ""); r.onerror = no; r.readAsDataURL(blob); });
+    const n = Math.max(1, Math.ceil(b64.length / PART)), ref = doc(collection(db, "chats", cid, "files"));
+    bar.hidden = false;
+    $("upName").textContent = "Кружок";
+    await setDoc(ref, { uid: me.uid, name: "circle.webm", size: blob.size, type, n, ts: serverTimestamp() });
+    for (let i = 0; i < n; i++) {
+      $("upFill").style.width = Math.round(i / n * 100) + "%";
+      await setDoc(doc(ref, "parts", String(i).padStart(3, "0")), { d: b64.slice(i * PART, (i + 1) * PART) });
+    }
+    circCache.set(ref.id, URL.createObjectURL(blob));
+    await post(cid, { circle: { id: ref.id, dur, type, poster } });
+  } catch (e) {
+    toast("Кружок не отправился: " + (e.code || e.message));
+  } finally {
+    bar.hidden = true;
+  }
+}
+$("circBtn").onclick = circOpen;
+$("crX").onclick = () => circStop(true);
+$("crGo").onclick = () => (cr.rec ? circStop(false) : circStart());
+$("crFlip").onclick = () => { cr.facing = cr.facing === "user" ? "environment" : "user"; circCam().catch(() => toast("Другая камера не открылась")); };

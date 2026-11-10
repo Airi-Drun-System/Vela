@@ -60,6 +60,7 @@
       <label class="icon" title="Файл" aria-label="Отправить файл"><input type="file" id="file" multiple hidden><svg viewBox="0 0 24 24"><path d="M16.5 6v11.5a4 4 0 0 1-8 0V5a2.5 2.5 0 0 1 5 0v10.5a1 1 0 0 1-2 0V6H10v9.5a2.5 2.5 0 0 0 5 0V5a4 4 0 0 0-8 0v12.5a5.5 5.5 0 0 0 11 0V6z"/></svg></label>
       <label class="icon" title="Фото" aria-label="Отправить фото"><input type="file" id="pic" accept="image/*" hidden><svg viewBox="0 0 24 24"><path d="M4 5h16v14H4zm2 2v8l4-4 3 3 2-2 3 3V7zm9 1.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3z"/></svg></label>
       <div class="tw"><div class="tmir" id="tmir" aria-hidden="true"></div><textarea id="txt" rows="1" placeholder="Сообщение" maxlength="4000"></textarea></div>
+      <button type="button" class="icon" id="circBtn" title="Видеокружок" aria-label="Видеокружок"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm0 2a8 8 0 1 1 0 16 8 8 0 0 1 0-16zm-2.5 4.5v7l6-3.5z"/></svg></button>
       <button type="button" class="icon mic" id="mic" title="Удерживай, чтобы записать голосовое" aria-label="Голосовое"><svg viewBox="0 0 24 24"><path d="M12 3a3 3 0 0 1 3 3v6a3 3 0 0 1-6 0V6a3 3 0 0 1 3-3zm-7 9h2a5 5 0 0 0 10 0h2a7 7 0 0 1-6 6.9V21h-2v-2.1A7 7 0 0 1 5 12z"/></svg></button>
       <button class="icon send" id="send" aria-label="Отправить" hidden><svg viewBox="0 0 24 24"><path d="M3 20.5 21 12 3 3.5 5.5 12zM5.5 12H13"/></svg></button>
     </form>
@@ -79,6 +80,11 @@
     <button id="rScr" aria-label="Демонстрация экрана"><svg viewBox="0 0 24 24"><path d="M3 4h18a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1h-7v2h3v2H7v-2h3v-2H3a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1zm9 3-4 4h3v3h2v-3h3z"/></svg></button>
     <button id="rLeave" class="end" aria-label="Выйти"><svg viewBox="0 0 24 24"><path d="M12 9c-1.6 0-3.15.25-4.6.72v3.1a1 1 0 0 1-.56.9 11.5 11.5 0 0 0-2.66 1.85 1 1 0 0 1-1.41 0L.29 13.08a1 1 0 0 1 0-1.41C3.34 8.78 7.46 7 12 7s8.66 1.78 11.71 4.67a1 1 0 0 1 0 1.41l-2.48 2.49a1 1 0 0 1-1.41 0 11.3 11.3 0 0 0-2.67-1.85 1 1 0 0 1-.56-.9v-3.1A15 15 0 0 0 12 9z"/></svg></button>
   </div>
+</div>
+<div class="circRec" id="circRec" hidden>
+  <div class="crWrap"><video id="crVid" autoplay playsinline muted></video><svg class="crRing" viewBox="0 0 100 100"><circle cx="50" cy="50" r="48" pathLength="100" id="crProg"/></svg></div>
+  <div class="crT" id="crT">0:00</div>
+  <div class="crBtns"><button id="crX">Отмена</button><button id="crFlip">Камера</button><button class="main" id="crGo">Отправить</button></div>
 </div>
 <div class="call" id="call" hidden>
   <div class="callInfo"><div class="ava big" id="callAva"></div><b id="callName"></b><small id="callSt"></small></div>

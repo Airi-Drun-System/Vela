@@ -32,7 +32,7 @@ function apply(target, data, dotted) {
     else if (v === SRV) o[last] = ts();
     else if (v && v.__au) o[last] = [...new Set([...(o[last] || []), ...v.__au])];
     else if (v && v.__ar) o[last] = (o[last] || []).filter((x) => !v.__ar.includes(x));
-    else if (v && typeof v === "object" && !Array.isArray(v) && !v.__ts && !dotted) { o[last] = {}; apply(o[last], v, false); }
+    else if (v && typeof v === "object" && !Array.isArray(v) && !v.__ts) { o[last] = {}; apply(o[last], v, false); }
     else o[last] = v;
   }
 }

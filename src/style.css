@@ -3778,3 +3778,201 @@ body.fx .sheetCard, body.fx .menu {
 body.fx.md .sheetCard, body.fx.md .menu {
   background: var(--md-c2);
 }
+@media (pointer: coarse) {
+  .m .bub, .ci {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
+}
+.m.hasCirc .bub {
+  background: transparent !important;
+  box-shadow: none !important;
+  padding: 0;
+}
+.m.hasCirc .meta {
+  display: block;
+  text-align: right;
+  margin-top: 2px;
+  color: var(--ink2);
+}
+.circ {
+  position: relative;
+  display: block;
+  width: min(220px, 56vw);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  overflow: hidden;
+  background: #222;
+  cursor: pointer;
+}
+.circ img, .circ video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
+.circ video {
+  opacity: 0;
+  transition: opacity .2s;
+}
+.circ.playing video {
+  opacity: 1;
+}
+.circ svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+  pointer-events: none;
+}
+.circ circle {
+  fill: none;
+  stroke: #fff;
+  stroke-width: 2.5;
+  stroke-dasharray: 100;
+  stroke-dashoffset: 100;
+  opacity: .9;
+}
+.cPlay {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 46px;
+  height: 46px;
+  margin: -23px 0 0 -23px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, .45) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='white' d='M8 5v14l11-7z'/%3E%3C/svg%3E") center / 24px no-repeat;
+  transition: opacity .2s, transform .2s;
+}
+.circ.playing .cPlay {
+  opacity: 0;
+  transform: scale(.6);
+}
+.circ.busy .cPlay {
+  background-image: none;
+  border: 3px solid rgba(255, 255, 255, .3);
+  border-top-color: #fff;
+  animation: dSpin .8s linear infinite;
+}
+.cDur {
+  position: absolute;
+  left: 50%;
+  bottom: 10px;
+  transform: translateX(-50%);
+  padding: 1px 8px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, .5);
+  color: #fff;
+  font-size: 11px;
+}
+.circRec {
+  position: fixed;
+  inset: 0;
+  z-index: 45;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 16px;
+  background: rgba(0, 0, 0, .82);
+  animation: callIn .25s ease both;
+}
+.circRec[hidden] {
+  display: none;
+}
+.crWrap {
+  position: relative;
+  width: min(300px, 78vw);
+  aspect-ratio: 1;
+}
+.crWrap video {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  background: #111;
+}
+.crWrap video.mirror {
+  transform: scaleX(-1);
+}
+.crRing {
+  position: absolute;
+  inset: -8px;
+  width: calc(100% + 16px);
+  height: calc(100% + 16px);
+  transform: rotate(-90deg);
+}
+.crRing circle {
+  fill: none;
+  stroke: rgba(255, 255, 255, .15);
+  stroke-width: 2;
+}
+.circRec.on .crRing circle {
+  stroke: #f23f43;
+  stroke-dasharray: 100;
+}
+.crT {
+  color: #fff;
+  font-size: 18px;
+  font-variant-numeric: tabular-nums;
+}
+.circRec.on .crT::before {
+  content: "";
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  margin-right: 8px;
+  border-radius: 50%;
+  background: #f23f43;
+  animation: vBlink 1s infinite;
+}
+.crBtns {
+  display: flex;
+  gap: 10px;
+}
+.crBtns button {
+  padding: 11px 18px;
+  border-radius: 99px;
+  background: rgba(255, 255, 255, .12);
+  color: #fff;
+  font-weight: 700;
+}
+.crBtns button[hidden] {
+  display: none;
+}
+.crBtns .main {
+  background: #fff;
+  color: #111;
+  box-shadow: none;
+}
+.m {
+  position: relative;
+}
+.m.swipeBack {
+  transition: transform .2s ease;
+}
+.m::after {
+  content: "";
+  position: absolute;
+  right: -40px;
+  top: 50%;
+  width: 28px;
+  height: 28px;
+  margin-top: -14px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, .12) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='white' d='M10 9V5l-7 7 7 7v-4.1c5 0 8.5 1.6 11 5.1-1-5-4-10-11-11z'/%3E%3C/svg%3E") center / 16px no-repeat;
+  opacity: 0;
+  transform: scale(.6);
+  transition: opacity .15s, transform .15s;
+  pointer-events: none;
+}
+.m.swipeOk::after {
+  opacity: 1;
+  transform: scale(1);
+}
+.msgs {
+  overflow-x: hidden;
+}
