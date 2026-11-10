@@ -3585,3 +3585,21 @@ body.md .ci.new i {
 .ci .ava[data-f]:not([data-f=""]), .pMem .ava[data-f]:not([data-f=""]) {
   margin-top: 6px;
 }
+.ava.on::after {
+  z-index: 2;
+}
+.chats {
+  padding-top: 16px;
+}
+.chatTop .ava::before, .tile .ava::before, .strip .ava::before {
+  display: none;
+}
+.ci .ava[data-f]:not([data-f=""]) {
+  margin: 4px 2px 0;
+}
+.ci {
+  overflow: visible;
+}
+.ci .ciT {
+  overflow: hidden;
+}
