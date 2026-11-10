@@ -4125,7 +4125,8 @@ body.paper .rip i {
   100% { transform: translate(var(--dx), var(--dy)) scale(1) rotate(var(--r)); opacity: 0; }
 }
 body.alive button, body.alive .ci, body.alive .chip, body.alive .pMem, body.alive .verRow, body.alive .fr, body.alive .fxb, body.alive label.icon {
-  transition: scale .18s cubic-bezier(.3, 1.6, .5, 1), translate .25s cubic-bezier(.2, .9, .3, 1), background-color .15s, box-shadow .15s;
+  transform-style: preserve-3d;
+  transition: transform .2s cubic-bezier(.2, .9, .3, 1), scale .18s cubic-bezier(.3, 1.6, .5, 1), translate .25s cubic-bezier(.2, .9, .3, 1), background-color .15s, box-shadow .15s;
 }
 body.alive button:active, body.alive .ci:active, body.alive .chip:active, body.alive .pMem:active, body.alive .fr:active, body.alive .fxb:active, body.alive label.icon:active {
   scale: .95;
@@ -4134,7 +4135,7 @@ body.alive button:active, body.alive .ci:active, body.alive .chip:active, body.a
 body.alive .ci:active {
   scale: .98;
 }
-body.alive .ci:hover, body.alive .pMem:hover, body.alive .verRow:hover, body.alive .chip:hover {
+body.alive button:hover, body.alive .fr:hover, body.alive .fxb:hover, body.alive label.icon:hover, body.alive .ci:hover, body.alive .pMem:hover, body.alive .verRow:hover, body.alive .chip:hover {
   background-image: radial-gradient(circle 140px at var(--mx, 50%) var(--my, 50%), rgba(255, 255, 255, .07), transparent);
 }
 body.alive .fab:hover, body.alive #send:hover, body.alive .rBtns button:hover {

@@ -65,13 +65,18 @@ export function burst(x, y, chars, n = 10) {
     setTimeout(() => p.remove(), 900);
   }
 }
-let mag = [], hov = null, raf = 0, mx = 0, my = 0;
+let mag = [], hov = null, tilted = null, raf = 0, mx = 0, my = 0;
 function frame() {
   raf = 0;
+  if (tilted && tilted !== hov) { tilted.style.transform = ""; tilted = null; }
   if (hov) {
-    const r = hov.getBoundingClientRect();
-    hov.style.setProperty("--mx", ((mx - r.left) / r.width) * 100 + "%");
-    hov.style.setProperty("--my", ((my - r.top) / r.height) * 100 + "%");
+    const r = hov.getBoundingClientRect(), x = (mx - r.left) / r.width, y = (my - r.top) / r.height, k = r.width > 220 ? 3 : 12;
+    hov.style.setProperty("--mx", x * 100 + "%");
+    hov.style.setProperty("--my", y * 100 + "%");
+    if (!hov.closest(".pc")) {
+      hov.style.transform = `perspective(500px) rotateY(${(x - 0.5) * k}deg) rotateX(${(0.5 - y) * k}deg)`;
+      tilted = hov;
+    }
   }
   for (const m of mag) {
     const r = m.getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height / 2, dx = mx - cx, dy = my - cy, d = Math.hypot(dx, dy);
@@ -103,7 +108,7 @@ export function initLive(o) {
     if (!opts.live) return;
     mx = e.clientX;
     my = e.clientY;
-    hov = e.target.closest && e.target.closest(".ci, button, .pMem, .chip, .verRow");
+    hov = (e.target.closest && e.target.closest(".ci, button, .pMem, .chip, .verRow, .fr, .fxb, label.icon")) || null;
     if (!raf) raf = requestAnimationFrame(frame);
   }, { passive: true });
 }
