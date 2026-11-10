@@ -5,6 +5,7 @@ import {
   persistentLocalCache,
   doc,
   getDoc,
+  getDocFromCache,
   setDoc,
   getDocs,
   updateDoc,
@@ -208,7 +209,8 @@ onAuthStateChanged(auth, (u) => {
 let started = null;
 async function startApp(u) {
   if (started === u.uid) return;
-  const snap = await getDoc(doc(db, "users", u.uid)).catch(() => null);
+  const ref = doc(db, "users", u.uid);
+  const snap = await getDocFromCache(ref).then((s) => (s.exists() ? s : null), () => null) || await getDoc(ref).catch(() => null);
   if (!snap || !snap.exists()) {
     if (!signUp) {
       $("aErr").textContent = "Аккаунт не допущен в чат";

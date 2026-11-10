@@ -2763,16 +2763,7 @@ body.glass.mono .m.mine .file i, body.glass.mono .m.mine .callM i {
 }
 @media (max-width: 760px) {
 }
-body.pc::after {
-  content: "";
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 140px;
-  height: 10px;
-  z-index: 60;
-  -webkit-app-region: drag;
-}
+
 @media (max-width: 760px) {
   body.pc .sideTop {
     padding-right: 150px;
@@ -3602,4 +3593,119 @@ body.md .ci.new i {
 }
 .ci .ciT {
   overflow: hidden;
+}
+.pX {
+  z-index: 5;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, .45);
+  color: #fff;
+  opacity: 1;
+  line-height: 1;
+}
+.setHead .icon, #admX {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--paper2);
+  color: var(--ink);
+  font-size: 22px;
+  line-height: 1;
+  opacity: 1;
+}
+#admBody .gname {
+  display: block;
+  width: 100%;
+}
+#admBody .main {
+  display: block;
+  width: 100%;
+  margin-top: 10px;
+}
+.ciV {
+  white-space: nowrap;
+  overflow: hidden;
+}
+#pPres {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+@media (max-width: 760px) {
+  body.inChat .vbar:not([hidden]) {
+    position: fixed;
+    z-index: 25;
+    left: 10px;
+    right: 10px;
+    top: calc(env(safe-area-inset-top) + 66px);
+    margin: 0;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, .35);
+  }
+}
+#drag {
+  display: none;
+}
+body.pc #drag {
+  display: block;
+  position: fixed;
+  z-index: 100;
+  top: 0;
+  left: 0;
+  right: 140px;
+  height: 12px;
+  -webkit-app-region: drag;
+}
+body.pc:not(.glass) .app {
+  padding-top: 12px;
+}
+body.pc .side, body.pc .empty {
+  -webkit-app-region: no-drag;
+}
+body.pc .empty {
+  -webkit-app-region: drag;
+}
+body.glass::before {
+  filter: none;
+  opacity: .75;
+}
+body.glass.mono .side, body.glass.mono .chat, body.glass.mono .empty, body.glass.mono .chatTop {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+body.glass.mono::before {
+  animation: none;
+}
+.gname {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+}
+#gGo {
+  display: block;
+  width: 100%;
+  margin: 12px 0 4px;
+}
+.gpick label {
+  cursor: pointer;
+}
+body.glass.mono .menu, body.glass.mono .sheetCard {
+  background: rgba(26, 26, 28, .94);
+}
+body.glass.mono .sheet {
+  background: rgba(0, 0, 0, .55);
+}
+body.glass.mono .toast {
+  background: rgba(30, 30, 32, .94);
+}
+body.glass.mono .authCard {
+  background: rgba(24, 24, 26, .7);
+}
+body.glass.mono .ava.on::after {
+  box-shadow: 0 0 0 3px #161617;
+}
+body.glass.mono .sw button.on {
+  box-shadow: 0 0 0 3px #1a1a1c, 0 0 0 5px #fff;
+}
+body.glass.mono .ci.sel {
+  background: rgba(255, 255, 255, .08);
 }

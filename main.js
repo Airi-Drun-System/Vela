@@ -16,7 +16,7 @@ function createWindow() {
     autoHideMenuBar: true,
     titleBarStyle: "hidden",
     titleBarOverlay: { color: "#00000000", symbolColor: "#d8d8de", height: 36 },
-    webPreferences: { contextIsolation: true, nodeIntegration: false, sandbox: true, preload: path.join(__dirname, "preload.js"), additionalArguments: ["--vela-v=" + app.getVersion()] }
+    webPreferences: { contextIsolation: true, nodeIntegration: false, sandbox: true, preload: path.join(__dirname, "preload.js"), additionalArguments: ["--vela-v=" + app.getVersion()], v8CacheOptions: "bypassHeatCheckAndEagerCompile", spellcheck: false, backgroundThrottling: false }
   });
   win.loadFile(path.join(__dirname, "src", "index.html"));
   win.webContents.setWindowOpenHandler(({ url }) => {

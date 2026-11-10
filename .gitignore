@@ -3,3 +3,5 @@ dist/
 /www/
 /android/
 src/bundle.js
+src/_h.html
+src/_hbundle.js
